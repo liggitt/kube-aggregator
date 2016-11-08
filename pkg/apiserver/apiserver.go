@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/registry/generic"
 
@@ -10,8 +11,15 @@ import (
 	apiserverstorage "github.com/openshift/kube-aggregator/pkg/registry/apiserver"
 )
 
+// TODO move to genericapiserver or something like that
+type RESTOptionsGetter interface {
+	NewFor(resource unversioned.GroupResource) generic.RESTOptions
+}
+
 type Config struct {
 	GenericConfig *genericapiserver.Config
+
+	RESTOptionsGetter RESTOptionsGetter
 }
 
 // APIDiscoveryServer contains state for a Kubernetes cluster master/api server.
@@ -50,7 +58,7 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 	apiGroupInfo.GroupMeta.GroupVersion = discoveryapiv1beta1.SchemeGroupVersion
 
 	v1beta1storage := map[string]rest.Storage{}
-	v1beta1storage["apiservers"] = apiserverstorage.NewREST(generic.RESTOptions{})
+	v1beta1storage["apiservers"] = apiserverstorage.NewREST(c.RESTOptionsGetter.NewFor(discoveryapi.Resource("apiservers")))
 
 	apiGroupInfo.VersionedResourcesStorageMap[discoveryapiv1beta1.SchemeGroupVersion.Version] = v1beta1storage
 
