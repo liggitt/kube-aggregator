@@ -52,13 +52,13 @@ func New(c restclient.Interface) *PkgApiClient {
 }
 
 func setConfigDefaults(config *restclient.Config) error {
-	gv, err := unversioned.ParseGroupVersion("pkg/api")
+	gv, err := unversioned.ParseGroupVersion("apidiscovery.openshift.io/api")
 	if err != nil {
 		return err
 	}
-	// if pkg/api is not enabled, return an error
+	// if apidiscovery.openshift.io/api is not enabled, return an error
 	if !registered.IsEnabledVersion(gv) {
-		return fmt.Errorf("pkg/api is not enabled")
+		return fmt.Errorf("apidiscovery.openshift.io/api is not enabled")
 	}
 	config.APIPath = "/apis"
 	if config.UserAgent == "" {
