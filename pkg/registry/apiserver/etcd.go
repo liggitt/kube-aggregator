@@ -38,12 +38,12 @@ func NewREST(opts generic.RESTOptions) *REST {
 		// Produces a APIServer that etcd understands, to the root of the resource
 		// by combining the namespace in the context with the given prefix
 		KeyRootFunc: func(ctx api.Context) string {
-			return registry.NamespaceKeyRootFunc(ctx, prefix)
+			return prefix
 		},
 		// Produces a APIServer that etcd understands, to the resource by combining
 		// the namespace in the context with the given prefix
 		KeyFunc: func(ctx api.Context, name string) (string, error) {
-			return registry.NamespaceKeyFunc(ctx, prefix, name)
+			return registry.NoNamespaceKeyFunc(ctx, prefix, name)
 		},
 		// Retrieve the name field of an apiserver
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {

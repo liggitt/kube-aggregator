@@ -1,0 +1,8 @@
+apiVersion: apifederation.openshift.io/v1beta1
+kind: APIServer
+metadata:
+  name: v1.
+spec:
+  version: v1
+  internalHost: localhost:6443
+  priority: 1
