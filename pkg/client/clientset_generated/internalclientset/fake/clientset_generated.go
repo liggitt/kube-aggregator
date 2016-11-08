@@ -46,7 +46,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// Pkg retrieves the PkgClient
-func (c *Clientset) Pkg() apipkg.PkgInterface {
-	return &fakeapipkg.FakePkg{Fake: &c.Fake}
+// PkgApi retrieves the PkgApiClient
+func (c *Clientset) PkgApi() apipkg.PkgApiInterface {
+	return &fakeapipkg.FakePkgApi{Fake: &c.Fake}
+}
+
+// Pkg retrieves the PkgApiClient
+func (c *Clientset) Pkg() apipkg.PkgApiInterface {
+	return &fakeapipkg.FakePkgApi{Fake: &c.Fake}
 }

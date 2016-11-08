@@ -11,22 +11,33 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	Pkg() apipkg.PkgInterface
+	PkgApi() apipkg.PkgApiInterface
+	// Deprecated: please explicitly pick a version if possible.
+	Pkg() apipkg.PkgApiInterface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*apipkg.PkgClient
+	*apipkg.PkgApiClient
 }
 
-// Pkg retrieves the PkgClient
-func (c *Clientset) Pkg() apipkg.PkgInterface {
+// PkgApi retrieves the PkgApiClient
+func (c *Clientset) PkgApi() apipkg.PkgApiInterface {
 	if c == nil {
 		return nil
 	}
-	return c.PkgClient
+	return c.PkgApiClient
+}
+
+// Deprecated: Pkg retrieves the default version of PkgClient.
+// Please explicitly pick a version.
+func (c *Clientset) Pkg() apipkg.PkgApiInterface {
+	if c == nil {
+		return nil
+	}
+	return c.PkgApiClient
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -42,7 +53,7 @@ func NewForConfig(c *restclient.Config) (*Clientset, error) {
 	}
 	var clientset Clientset
 	var err error
-	clientset.PkgClient, err = apipkg.NewForConfig(&configShallowCopy)
+	clientset.PkgApiClient, err = apipkg.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -59,16 +70,16 @@ func NewForConfig(c *restclient.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *restclient.Config) *Clientset {
 	var clientset Clientset
-	clientset.PkgClient = apipkg.NewForConfigOrDie(c)
+	clientset.PkgApiClient = apipkg.NewForConfigOrDie(c)
 
 	clientset.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &clientset
 }
 
 // New creates a new Clientset for the given RESTClient.
-func New(c *restclient.RESTClient) *Clientset {
+func New(c restclient.Interface) *Clientset {
 	var clientset Clientset
-	clientset.PkgClient = apipkg.New(c)
+	clientset.PkgApiClient = apipkg.New(c)
 
 	clientset.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &clientset

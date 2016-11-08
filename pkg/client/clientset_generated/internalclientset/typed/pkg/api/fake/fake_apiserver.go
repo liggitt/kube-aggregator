@@ -12,7 +12,7 @@ import (
 
 // FakeAPIServers implements APIServerInterface
 type FakeAPIServers struct {
-	Fake *FakePkg
+	Fake *FakePkgApi
 	ns   string
 }
 

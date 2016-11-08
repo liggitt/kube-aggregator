@@ -4,6 +4,7 @@ import (
 	api "github.com/openshift/kube-aggregator/pkg/api"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -28,14 +29,14 @@ type APIServerInterface interface {
 
 // aPIServers implements APIServerInterface
 type aPIServers struct {
-	client *PkgClient
+	client restclient.Interface
 	ns     string
 }
 
 // newAPIServers returns a APIServers
-func newAPIServers(c *PkgClient, namespace string) *aPIServers {
+func newAPIServers(c *PkgApiClient, namespace string) *aPIServers {
 	return &aPIServers{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
