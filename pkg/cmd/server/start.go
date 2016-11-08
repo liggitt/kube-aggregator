@@ -7,8 +7,12 @@ import (
 	"path"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authenticator/bearertoken"
 	"k8s.io/kubernetes/pkg/auth/group"
@@ -16,7 +20,11 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/genericapiserver"
+	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	certutil "k8s.io/kubernetes/pkg/util/cert"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/anonymous"
@@ -25,27 +33,34 @@ import (
 	authenticationwebhook "k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/webhook"
 	authorizationwebhook "k8s.io/kubernetes/plugin/pkg/auth/authorizer/webhook"
 
+	discoveryapi "github.com/openshift/kube-aggregator/pkg/api"
 	"github.com/openshift/kube-aggregator/pkg/apiserver"
 )
 
 const defaultConfigDir = "openshift.local.config/kube-aggregator"
+const defaultEtcdPathPrefix = "/registry/openshift.io/kube-aggregator"
 
 type DiscoveryServerOptions struct {
 	StdOut io.Writer
 
-	ConfigDir string
-
-	// ConfigFile is the serialized config file used to launch this process.  It is optional
-	ConfigFile string
 	KubeConfig string
 	ClientCA   string
+
+	// we're only going to use the etcd options.  Well, at least to start.
+	// once we refactor, we'll start making it easy to choose subsets of the options
+	EtcdOptions *genericoptions.ServerRunOptions
 }
 
 const startLong = `Start an API server hosting the project.openshift.io API.`
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
 func NewCommandStartDiscoveryServer(out io.Writer) *cobra.Command {
-	o := &DiscoveryServerOptions{StdOut: out}
+	o := &DiscoveryServerOptions{
+		StdOut:      out,
+		EtcdOptions: genericoptions.NewServerRunOptions().WithEtcdOptions(),
+	}
+	o.EtcdOptions.StorageConfig.Prefix = defaultEtcdPathPrefix
+	o.EtcdOptions.StorageConfig.Codec = kapi.Codecs.LegacyCodec(registered.EnabledVersionsForGroup(discoveryapi.GroupName)...)
 
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -61,9 +76,9 @@ func NewCommandStartDiscoveryServer(out io.Writer) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&o.ConfigDir, "write-config", o.ConfigDir, "Directory to write an initial config into.  After writing, exit without starting the server.")
 	flags.StringVar(&o.KubeConfig, "kubeconfig", o.KubeConfig, "Location of the master configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
 	flags.StringVar(&o.ClientCA, "client-ca-file", o.ClientCA, "If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file is authenticated with an identity corresponding to the CommonName of the client certificate.")
+	o.EtcdOptions.AddEtcdStorageFlags(flags)
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("write-config")
@@ -103,8 +118,9 @@ func (o DiscoveryServerOptions) RunDiscoveryServer() error {
 	}
 
 	m := &DiscoveryServer{
-		servingInfo: secureServingInfo,
-		kubeConfig:  o.KubeConfig,
+		servingInfo:   secureServingInfo,
+		kubeConfig:    o.KubeConfig,
+		storageConfig: o.EtcdOptions.StorageConfig,
 	}
 	return m.Start()
 }
@@ -114,6 +130,8 @@ type DiscoveryServer struct {
 	// this should be part of the serializeable config
 	servingInfo genericapiserver.SecureServingInfo
 	kubeConfig  string
+
+	storageConfig storagebackend.Config
 }
 
 // Start launches a master. It will error if possible, but some background processes may still
@@ -144,8 +162,13 @@ func (s *DiscoveryServer) Start() error {
 		return err
 	}
 
+	if err != nil {
+		glog.Fatalf("error in initializing storage factory: %s", err)
+	}
+
 	config := apiserver.Config{
-		GenericConfig: genericAPIServerConfig.Config,
+		GenericConfig:     genericAPIServerConfig.Config,
+		RESTOptionsGetter: restOptionsFactory{storageConfig: &s.storageConfig},
 	}
 
 	server, err := config.Complete().New()
@@ -187,4 +210,18 @@ func newAuthenticatorFromClientCAFile(clientCAFile string) (authenticator.Reques
 	opts.Roots = roots
 
 	return x509.New(opts, x509.CommonNameUserConversion), nil
+}
+
+type restOptionsFactory struct {
+	storageConfig *storagebackend.Config
+}
+
+func (f restOptionsFactory) NewFor(resource unversioned.GroupResource) generic.RESTOptions {
+	return generic.RESTOptions{
+		StorageConfig:           f.storageConfig,
+		Decorator:               registry.StorageWithCacher,
+		DeleteCollectionWorkers: 1,
+		EnableGarbageCollection: false,
+		ResourcePrefix:          f.storageConfig.Prefix + "/" + resource.Group + "/" + resource.Resource,
+	}
 }
