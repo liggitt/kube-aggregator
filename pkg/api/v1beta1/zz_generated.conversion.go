@@ -6,9 +6,11 @@ package v1beta1
 
 import (
 	api "github.com/openshift/kube-aggregator/pkg/api"
+	pkg_api "k8s.io/kubernetes/pkg/api"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -19,15 +21,45 @@ func init() {
 // Public to allow building arbitrary schemes.
 func RegisterConversions(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedConversionFuncs(
+		Convert_v1beta1_APIResource_To_api_APIResource,
+		Convert_api_APIResource_To_v1beta1_APIResource,
 		Convert_v1beta1_APIServer_To_api_APIServer,
 		Convert_api_APIServer_To_v1beta1_APIServer,
+		Convert_v1beta1_APIServerCondition_To_api_APIServerCondition,
+		Convert_api_APIServerCondition_To_v1beta1_APIServerCondition,
 		Convert_v1beta1_APIServerList_To_api_APIServerList,
 		Convert_api_APIServerList_To_v1beta1_APIServerList,
 		Convert_v1beta1_APIServerSpec_To_api_APIServerSpec,
 		Convert_api_APIServerSpec_To_v1beta1_APIServerSpec,
 		Convert_v1beta1_APIServerStatus_To_api_APIServerStatus,
 		Convert_api_APIServerStatus_To_v1beta1_APIServerStatus,
+		Convert_v1beta1_APISubResource_To_api_APISubResource,
+		Convert_api_APISubResource_To_v1beta1_APISubResource,
 	)
+}
+
+func autoConvert_v1beta1_APIResource_To_api_APIResource(in *APIResource, out *api.APIResource, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespaced = in.Namespaced
+	out.Kind = in.Kind
+	out.SubResources = *(*[]api.APISubResource)(unsafe.Pointer(&in.SubResources))
+	return nil
+}
+
+func Convert_v1beta1_APIResource_To_api_APIResource(in *APIResource, out *api.APIResource, s conversion.Scope) error {
+	return autoConvert_v1beta1_APIResource_To_api_APIResource(in, out, s)
+}
+
+func autoConvert_api_APIResource_To_v1beta1_APIResource(in *api.APIResource, out *APIResource, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespaced = in.Namespaced
+	out.Kind = in.Kind
+	out.SubResources = *(*[]APISubResource)(unsafe.Pointer(&in.SubResources))
+	return nil
+}
+
+func Convert_api_APIResource_To_v1beta1_APIResource(in *api.APIResource, out *APIResource, s conversion.Scope) error {
+	return autoConvert_api_APIResource_To_v1beta1_APIResource(in, out, s)
 }
 
 func autoConvert_v1beta1_APIServer_To_api_APIServer(in *APIServer, out *api.APIServer, s conversion.Scope) error {
@@ -62,6 +94,34 @@ func autoConvert_api_APIServer_To_v1beta1_APIServer(in *api.APIServer, out *APIS
 
 func Convert_api_APIServer_To_v1beta1_APIServer(in *api.APIServer, out *APIServer, s conversion.Scope) error {
 	return autoConvert_api_APIServer_To_v1beta1_APIServer(in, out, s)
+}
+
+func autoConvert_v1beta1_APIServerCondition_To_api_APIServerCondition(in *APIServerCondition, out *api.APIServerCondition, s conversion.Scope) error {
+	out.Type = api.APIServerConditionType(in.Type)
+	out.Status = pkg_api.ConditionStatus(in.Status)
+	out.LastProbeTime = in.LastProbeTime
+	out.LastTransitionTime = in.LastTransitionTime
+	out.Reason = in.Reason
+	out.Message = in.Message
+	return nil
+}
+
+func Convert_v1beta1_APIServerCondition_To_api_APIServerCondition(in *APIServerCondition, out *api.APIServerCondition, s conversion.Scope) error {
+	return autoConvert_v1beta1_APIServerCondition_To_api_APIServerCondition(in, out, s)
+}
+
+func autoConvert_api_APIServerCondition_To_v1beta1_APIServerCondition(in *api.APIServerCondition, out *APIServerCondition, s conversion.Scope) error {
+	out.Type = APIServerConditionType(in.Type)
+	out.Status = v1.ConditionStatus(in.Status)
+	out.LastProbeTime = in.LastProbeTime
+	out.LastTransitionTime = in.LastTransitionTime
+	out.Reason = in.Reason
+	out.Message = in.Message
+	return nil
+}
+
+func Convert_api_APIServerCondition_To_v1beta1_APIServerCondition(in *api.APIServerCondition, out *APIServerCondition, s conversion.Scope) error {
+	return autoConvert_api_APIServerCondition_To_v1beta1_APIServerCondition(in, out, s)
 }
 
 func autoConvert_v1beta1_APIServerList_To_api_APIServerList(in *APIServerList, out *api.APIServerList, s conversion.Scope) error {
@@ -133,6 +193,8 @@ func Convert_api_APIServerSpec_To_v1beta1_APIServerSpec(in *api.APIServerSpec, o
 func autoConvert_v1beta1_APIServerStatus_To_api_APIServerStatus(in *APIServerStatus, out *api.APIServerStatus, s conversion.Scope) error {
 	out.Group = in.Group
 	out.Version = in.Version
+	out.Resources = *(*[]api.APIResource)(unsafe.Pointer(&in.Resources))
+	out.Conditions = *(*[]api.APIServerCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -141,11 +203,33 @@ func Convert_v1beta1_APIServerStatus_To_api_APIServerStatus(in *APIServerStatus,
 }
 
 func autoConvert_api_APIServerStatus_To_v1beta1_APIServerStatus(in *api.APIServerStatus, out *APIServerStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]APIServerCondition)(unsafe.Pointer(&in.Conditions))
 	out.Group = in.Group
 	out.Version = in.Version
+	out.Resources = *(*[]APIResource)(unsafe.Pointer(&in.Resources))
 	return nil
 }
 
 func Convert_api_APIServerStatus_To_v1beta1_APIServerStatus(in *api.APIServerStatus, out *APIServerStatus, s conversion.Scope) error {
 	return autoConvert_api_APIServerStatus_To_v1beta1_APIServerStatus(in, out, s)
+}
+
+func autoConvert_v1beta1_APISubResource_To_api_APISubResource(in *APISubResource, out *api.APISubResource, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Kind = in.Kind
+	return nil
+}
+
+func Convert_v1beta1_APISubResource_To_api_APISubResource(in *APISubResource, out *api.APISubResource, s conversion.Scope) error {
+	return autoConvert_v1beta1_APISubResource_To_api_APISubResource(in, out, s)
+}
+
+func autoConvert_api_APISubResource_To_v1beta1_APISubResource(in *api.APISubResource, out *APISubResource, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Kind = in.Kind
+	return nil
+}
+
+func Convert_api_APISubResource_To_v1beta1_APISubResource(in *api.APISubResource, out *APISubResource, s conversion.Scope) error {
+	return autoConvert_api_APISubResource_To_v1beta1_APISubResource(in, out, s)
 }

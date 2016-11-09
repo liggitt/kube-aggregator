@@ -22,9 +22,40 @@ type APIServerSpec struct {
 	Priority int64
 }
 
+type APIServerConditionType string
+
+const (
+	APIServerAvailable APIServerConditionType = "Available"
+)
+
+type APIServerCondition struct {
+	Type               APIServerConditionType
+	Status             kapi.ConditionStatus
+	LastProbeTime      unversioned.Time
+	LastTransitionTime unversioned.Time
+	Reason             string
+	Message            string
+}
+
 type APIServerStatus struct {
-	Group   string
-	Version string
+	Conditions []APIServerCondition
+
+	Group     string
+	Version   string
+	Resources []APIResource
+}
+
+type APIResource struct {
+	Name       string
+	Namespaced bool
+	Kind       string
+
+	SubResources []APISubResource
+}
+
+type APISubResource struct {
+	Name string
+	Kind string
 }
 
 // +genclient=true

@@ -19,11 +19,34 @@ func init() {
 // to allow building arbitrary schemes.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_APIResource, InType: reflect.TypeOf(&APIResource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_APIServer, InType: reflect.TypeOf(&APIServer{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_APIServerCondition, InType: reflect.TypeOf(&APIServerCondition{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_APIServerList, InType: reflect.TypeOf(&APIServerList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_APIServerSpec, InType: reflect.TypeOf(&APIServerSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_APIServerStatus, InType: reflect.TypeOf(&APIServerStatus{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_APISubResource, InType: reflect.TypeOf(&APISubResource{})},
 	)
+}
+
+func DeepCopy_api_APIResource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*APIResource)
+		out := out.(*APIResource)
+		out.Name = in.Name
+		out.Namespaced = in.Namespaced
+		out.Kind = in.Kind
+		if in.SubResources != nil {
+			in, out := &in.SubResources, &out.SubResources
+			*out = make([]APISubResource, len(*in))
+			for i := range *in {
+				(*out)[i] = (*in)[i]
+			}
+		} else {
+			out.SubResources = nil
+		}
+		return nil
+	}
 }
 
 func DeepCopy_api_APIServer(in interface{}, out interface{}, c *conversion.Cloner) error {
@@ -37,7 +60,23 @@ func DeepCopy_api_APIServer(in interface{}, out interface{}, c *conversion.Clone
 			out.ObjectMeta = *newVal.(*pkg_api.ObjectMeta)
 		}
 		out.Spec = in.Spec
+		if err := DeepCopy_api_APIServerStatus(&in.Status, &out.Status, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_APIServerCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*APIServerCondition)
+		out := out.(*APIServerCondition)
+		out.Type = in.Type
 		out.Status = in.Status
+		out.LastProbeTime = in.LastProbeTime.DeepCopy()
+		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
+		out.Reason = in.Reason
+		out.Message = in.Message
 		return nil
 	}
 }
@@ -80,8 +119,40 @@ func DeepCopy_api_APIServerStatus(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*APIServerStatus)
 		out := out.(*APIServerStatus)
+		if in.Conditions != nil {
+			in, out := &in.Conditions, &out.Conditions
+			*out = make([]APIServerCondition, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_APIServerCondition(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Conditions = nil
+		}
 		out.Group = in.Group
 		out.Version = in.Version
+		if in.Resources != nil {
+			in, out := &in.Resources, &out.Resources
+			*out = make([]APIResource, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_APIResource(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Resources = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_APISubResource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*APISubResource)
+		out := out.(*APISubResource)
+		out.Name = in.Name
+		out.Kind = in.Kind
 		return nil
 	}
 }
