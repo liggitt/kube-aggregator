@@ -19,8 +19,8 @@ type PkgApiClient struct {
 	restClient restclient.Interface
 }
 
-func (c *PkgApiClient) APIServers(namespace string) APIServerInterface {
-	return newAPIServers(c, namespace)
+func (c *PkgApiClient) APIServers() APIServerInterface {
+	return newAPIServers(c)
 }
 
 // NewForConfig creates a new PkgApiClient for the given config.

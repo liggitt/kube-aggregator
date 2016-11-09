@@ -59,6 +59,7 @@ type APISubResource struct {
 }
 
 // +genclient=true
+// +nonNamespaced=true
 
 // APIServer is a logical top-level container for a set of origin resources
 type APIServer struct {
