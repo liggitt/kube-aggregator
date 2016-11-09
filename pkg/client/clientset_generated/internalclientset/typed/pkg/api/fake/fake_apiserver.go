@@ -15,7 +15,7 @@ type FakeAPIServers struct {
 	Fake *FakePkgApi
 }
 
-var apiserversResource = unversioned.GroupVersionResource{Group: "apidiscovery.openshift.io", Version: "api", Resource: "apiservers"}
+var apiserversResource = unversioned.GroupVersionResource{Group: "apifederation.openshift.io", Version: "api", Resource: "apiservers"}
 
 func (c *FakeAPIServers) Create(aPIServer *api.APIServer) (result *api.APIServer, err error) {
 	obj, err := c.Fake.
