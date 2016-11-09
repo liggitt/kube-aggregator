@@ -1,5 +1,5 @@
 // +k8s:deepcopy-gen=package,register
 
 // Package api is the internal version of the API.
-// +groupName=apidiscovery.openshift.io
+// +groupName=apifederation.openshift.io
 package api

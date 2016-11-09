@@ -8,16 +8,19 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pborman/uuid"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	apiserverauthenticator "k8s.io/kubernetes/pkg/apiserver/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authenticator/bearertoken"
 	"k8s.io/kubernetes/pkg/auth/group"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/options"
@@ -143,21 +146,28 @@ func (s *DiscoveryServer) Start() error {
 		return err
 	}
 
+	privilegedLoopbackToken := uuid.NewRandom().String()
+	selfClientConfig, err := newSelfClientConfig(s.servingInfo, privilegedLoopbackToken)
+	if err != nil {
+		glog.Fatalf("Failed to create clientset: %v", err)
+	}
+	genericAPIServerConfig.LoopbackClientConfig = selfClientConfig
+
 	kubeClientConfig, err := clientcmd.
 		NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: s.kubeConfig}, &clientcmd.ConfigOverrides{}).
 		ClientConfig()
 	if err != nil {
 		return err
 	}
-	clientset, err := internalclientset.NewForConfig(kubeClientConfig)
+	kubeclientset, err := internalclientset.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return err
 	}
-	genericAPIServerConfig.Authenticator, err = NewAuthenticator(s.servingInfo.ClientCA, clientset)
+	genericAPIServerConfig.Authenticator, err = NewAuthenticator(privilegedLoopbackToken, s.servingInfo.ClientCA, kubeclientset)
 	if err != nil {
 		return err
 	}
-	genericAPIServerConfig.Authorizer, err = authorizationwebhook.NewFromInterface(clientset.Authorization().SubjectAccessReviews(), 30*time.Second, 30*time.Second)
+	genericAPIServerConfig.Authorizer, err = authorizationwebhook.NewFromInterface(kubeclientset.Authorization().SubjectAccessReviews(), 30*time.Second, 30*time.Second)
 	if err != nil {
 		return err
 	}
@@ -179,7 +189,41 @@ func (s *DiscoveryServer) Start() error {
 	return nil
 }
 
-func NewAuthenticator(clientCAFile string, clientset internalclientset.Interface) (authenticator.Request, error) {
+func newSelfClientConfig(servingInfo genericapiserver.SecureServingInfo, token string) (*restclient.Config, error) {
+	clientConfig := &restclient.Config{
+		// Increase QPS limits. The client is currently passed to all admission plugins,
+		// and those can be throttled in case of higher load on apiserver - see #22340 and #22422
+		// for more details. Once #22422 is fixed, we may want to remove it.
+		QPS:   50,
+		Burst: 100,
+	}
+
+	host, port, err := net.SplitHostPort(servingInfo.ServingInfo.BindAddress)
+	if err != nil {
+		return nil, err
+	}
+	// TODO there's a way to get this via parsing
+	if host == "0.0.0.0" {
+		host = "127.0.0.1"
+	}
+	clientConfig.Host = "https://" + net.JoinHostPort(host, port)
+	// TODO this is incorrect, only works for self-signed
+	clientConfig.CAFile = servingInfo.ServerCert.CertFile
+	clientConfig.BearerToken = token
+
+	return clientConfig, nil
+}
+
+func NewAuthenticator(privilegedLoopbackToken, clientCAFile string, clientset internalclientset.Interface) (authenticator.Request, error) {
+	var uid = uuid.NewRandom().String()
+	tokens := make(map[string]*user.DefaultInfo)
+	tokens[privilegedLoopbackToken] = &user.DefaultInfo{
+		Name:   user.APIServerUser,
+		UID:    uid,
+		Groups: []string{user.SystemPrivilegedGroup},
+	}
+	loopbackTokenAuthenticator := apiserverauthenticator.NewAuthenticatorFromTokens(tokens)
+
 	certAuth, err := newAuthenticatorFromClientCAFile(clientCAFile)
 	if err != nil {
 		return nil, err
@@ -190,7 +234,7 @@ func NewAuthenticator(clientCAFile string, clientset internalclientset.Interface
 		return nil, err
 	}
 
-	authenticator := authenticationunion.New(certAuth, bearertoken.New(tokenChecker))
+	authenticator := authenticationunion.New(loopbackTokenAuthenticator, certAuth, bearertoken.New(tokenChecker))
 	authenticator = group.NewGroupAdder(authenticator, []string{user.AllAuthenticated})
 
 	// If the authenticator chain returns an error, return an error (don't consider a bad bearer token anonymous).
