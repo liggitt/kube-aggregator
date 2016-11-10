@@ -1,13 +1,18 @@
 package apiserver
 
 import (
+	"time"
+
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	discoveryapi "github.com/openshift/kube-aggregator/pkg/api"
 	discoveryapiv1beta1 "github.com/openshift/kube-aggregator/pkg/api/v1beta1"
+	clientset "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset"
+	"github.com/openshift/kube-aggregator/pkg/client/informers"
 	apiserverstorage "github.com/openshift/kube-aggregator/pkg/registry/apiserver"
 )
 
@@ -66,10 +71,15 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 		return nil, err
 	}
 
-	// m.GenericAPIServer.AddPostStartHook("start-informers", func(context genericapiserver.PostStartHookContext) error {
-	// 	informerFactory.Start(wait.NeverStop)
-	// 	return nil
-	// })
+	informerFactory := informers.NewSharedInformerFactory(
+		clientset.NewForConfigOrDie(c.Config.GenericConfig.LoopbackClientConfig),
+		5*time.Minute, // this is effectively used as a refresh interval right now.  Might want to do something nicer later on.
+	)
+
+	m.GenericAPIServer.AddPostStartHook("start-informers", func(context genericapiserver.PostStartHookContext) error {
+		informerFactory.Start(wait.NeverStop)
+		return nil
+	})
 
 	return m, nil
 }

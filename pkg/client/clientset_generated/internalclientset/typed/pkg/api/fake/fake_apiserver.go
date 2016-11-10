@@ -13,15 +13,13 @@ import (
 // FakeAPIServers implements APIServerInterface
 type FakeAPIServers struct {
 	Fake *FakePkgApi
-	ns   string
 }
 
-var apiserversResource = unversioned.GroupVersionResource{Group: "apidiscovery.openshift.io", Version: "api", Resource: "apiservers"}
+var apiserversResource = unversioned.GroupVersionResource{Group: "apifederation.openshift.io", Version: "api", Resource: "apiservers"}
 
 func (c *FakeAPIServers) Create(aPIServer *api.APIServer) (result *api.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(apiserversResource, c.ns, aPIServer), &api.APIServer{})
-
+		Invokes(core.NewRootCreateAction(apiserversResource, aPIServer), &api.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
@@ -30,8 +28,7 @@ func (c *FakeAPIServers) Create(aPIServer *api.APIServer) (result *api.APIServer
 
 func (c *FakeAPIServers) Update(aPIServer *api.APIServer) (result *api.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(apiserversResource, c.ns, aPIServer), &api.APIServer{})
-
+		Invokes(core.NewRootUpdateAction(apiserversResource, aPIServer), &api.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
@@ -40,13 +37,12 @@ func (c *FakeAPIServers) Update(aPIServer *api.APIServer) (result *api.APIServer
 
 func (c *FakeAPIServers) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(apiserversResource, c.ns, name), &api.APIServer{})
-
+		Invokes(core.NewRootDeleteAction(apiserversResource, name), &api.APIServer{})
 	return err
 }
 
 func (c *FakeAPIServers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(apiserversResource, c.ns, listOptions)
+	action := core.NewRootDeleteCollectionAction(apiserversResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.APIServerList{})
 	return err
@@ -54,8 +50,7 @@ func (c *FakeAPIServers) DeleteCollection(options *v1.DeleteOptions, listOptions
 
 func (c *FakeAPIServers) Get(name string) (result *api.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(apiserversResource, c.ns, name), &api.APIServer{})
-
+		Invokes(core.NewRootGetAction(apiserversResource, name), &api.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
@@ -64,8 +59,7 @@ func (c *FakeAPIServers) Get(name string) (result *api.APIServer, err error) {
 
 func (c *FakeAPIServers) List(opts v1.ListOptions) (result *api.APIServerList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(apiserversResource, c.ns, opts), &api.APIServerList{})
-
+		Invokes(core.NewRootListAction(apiserversResource, opts), &api.APIServerList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -86,15 +80,13 @@ func (c *FakeAPIServers) List(opts v1.ListOptions) (result *api.APIServerList, e
 // Watch returns a watch.Interface that watches the requested aPIServers.
 func (c *FakeAPIServers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(apiserversResource, c.ns, opts))
-
+		InvokesWatch(core.NewRootWatchAction(apiserversResource, opts))
 }
 
 // Patch applies the patch and returns the patched aPIServer.
 func (c *FakeAPIServers) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(apiserversResource, c.ns, name, data, subresources...), &api.APIServer{})
-
+		Invokes(core.NewRootPatchSubresourceAction(apiserversResource, name, data, subresources...), &api.APIServer{})
 	if obj == nil {
 		return nil, err
 	}

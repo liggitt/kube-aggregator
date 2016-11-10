@@ -10,8 +10,8 @@ type FakePkgApi struct {
 	*core.Fake
 }
 
-func (c *FakePkgApi) APIServers(namespace string) api.APIServerInterface {
-	return &FakeAPIServers{c, namespace}
+func (c *FakePkgApi) APIServers() api.APIServerInterface {
+	return &FakeAPIServers{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

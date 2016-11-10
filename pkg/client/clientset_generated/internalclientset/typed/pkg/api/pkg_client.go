@@ -19,8 +19,8 @@ type PkgApiClient struct {
 	restClient restclient.Interface
 }
 
-func (c *PkgApiClient) APIServers(namespace string) APIServerInterface {
-	return newAPIServers(c, namespace)
+func (c *PkgApiClient) APIServers() APIServerInterface {
+	return newAPIServers(c)
 }
 
 // NewForConfig creates a new PkgApiClient for the given config.
@@ -52,13 +52,13 @@ func New(c restclient.Interface) *PkgApiClient {
 }
 
 func setConfigDefaults(config *restclient.Config) error {
-	gv, err := unversioned.ParseGroupVersion("apidiscovery.openshift.io/api")
+	gv, err := unversioned.ParseGroupVersion("apifederation.openshift.io/v1beta1")
 	if err != nil {
 		return err
 	}
-	// if apidiscovery.openshift.io/api is not enabled, return an error
+	// if apifederation.openshift.io/api is not enabled, return an error
 	if !registered.IsEnabledVersion(gv) {
-		return fmt.Errorf("apidiscovery.openshift.io/api is not enabled")
+		return fmt.Errorf("apifederation.openshift.io/v1beta1 is not enabled")
 	}
 	config.APIPath = "/apis"
 	if config.UserAgent == "" {

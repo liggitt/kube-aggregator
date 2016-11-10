@@ -7,6 +7,7 @@
 		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen",
 		"k8s.io/kubernetes/cmd/libs/go2idl/conversion-gen",
 		"k8s.io/kubernetes/cmd/libs/go2idl/deepcopy-gen",
+		"k8s.io/kubernetes/cmd/libs/go2idl/lister-gen",
 		"k8s.io/kubernetes/cmd/genswaggertypedocs",
 		"k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf",
 		"k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo",
@@ -852,6 +853,16 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/lister-gen",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/lister-gen/generators",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},
