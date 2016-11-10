@@ -11,6 +11,7 @@ import (
 	_ "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset"
 	_ "github.com/openshift/kube-aggregator/pkg/client/listers/core/internalversion"
 
+	_ "k8s.io/kubernetes/pkg/genericapiserver/authorizer"
 	// install all APIs
 	_ "github.com/openshift/kube-aggregator/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
