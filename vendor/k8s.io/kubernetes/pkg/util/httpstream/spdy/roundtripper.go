@@ -72,6 +72,10 @@ func NewSpdyRoundTripper(tlsConfig *tls.Config) *SpdyRoundTripper {
 	return &SpdyRoundTripper{tlsConfig: tlsConfig}
 }
 
+func (s *SpdyRoundTripper) TLSClientConfig() *tls.Config {
+	return s.tlsConfig
+}
+
 // dial dials the host specified by req, using TLS if appropriate, optionally
 // using a proxy server if one is configured via environment variables.
 func (s *SpdyRoundTripper) dial(req *http.Request) (net.Conn, error) {
