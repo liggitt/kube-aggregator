@@ -18,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
-	discoveryapi "github.com/openshift/kube-aggregator/pkg/api"
+	discoveryapi "github.com/openshift/kube-aggregator/pkg/apis/apifederation"
 	"github.com/openshift/kube-aggregator/pkg/apiserver"
 )
 

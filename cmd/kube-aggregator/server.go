@@ -8,11 +8,8 @@ import (
 
 	"github.com/openshift/kube-aggregator/pkg/cmd/server"
 
-	_ "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset"
-	_ "github.com/openshift/kube-aggregator/pkg/client/listers/core/internalversion"
-
 	// install all APIs
-	_ "github.com/openshift/kube-aggregator/pkg/api/install"
+	_ "github.com/openshift/kube-aggregator/pkg/apis/apifederation/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
 )
 

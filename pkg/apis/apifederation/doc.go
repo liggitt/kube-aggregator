@@ -2,4 +2,4 @@
 
 // Package api is the internal version of the API.
 // +groupName=apifederation.openshift.io
-package api
+package apifederation

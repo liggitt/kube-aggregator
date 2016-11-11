@@ -1,4 +1,4 @@
-package api
+package apifederation
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"

@@ -9,7 +9,7 @@ import (
 	utilvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	discoveryapi "github.com/openshift/kube-aggregator/pkg/api"
+	discoveryapi "github.com/openshift/kube-aggregator/pkg/apis/apifederation"
 )
 
 func ValidateAPIServer(apiServer *discoveryapi.APIServer) field.ErrorList {
