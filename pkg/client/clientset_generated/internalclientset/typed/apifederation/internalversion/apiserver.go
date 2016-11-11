@@ -1,50 +1,47 @@
-package api
+package internalversion
 
 import (
-	api "github.com/openshift/kube-aggregator/pkg/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	v1 "k8s.io/kubernetes/pkg/api/v1"
+	apifederation "github.com/openshift/kube-aggregator/pkg/apis/apifederation"
+	api "k8s.io/kubernetes/pkg/api"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // APIServersGetter has a method to return a APIServerInterface.
 // A group's client should implement this interface.
 type APIServersGetter interface {
-	APIServers(namespace string) APIServerInterface
+	APIServers() APIServerInterface
 }
 
 // APIServerInterface has methods to work with APIServer resources.
 type APIServerInterface interface {
-	Create(*api.APIServer) (*api.APIServer, error)
-	Update(*api.APIServer) (*api.APIServer, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string) (*api.APIServer, error)
-	List(opts v1.ListOptions) (*api.APIServerList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.APIServer, err error)
+	Create(*apifederation.APIServer) (*apifederation.APIServer, error)
+	Update(*apifederation.APIServer) (*apifederation.APIServer, error)
+	Delete(name string, options *api.DeleteOptions) error
+	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Get(name string) (*apifederation.APIServer, error)
+	List(opts api.ListOptions) (*apifederation.APIServerList, error)
+	Watch(opts api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *apifederation.APIServer, err error)
 	APIServerExpansion
 }
 
 // aPIServers implements APIServerInterface
 type aPIServers struct {
-	client *DiscoveryClient
-	ns     string
+	client restclient.Interface
 }
 
 // newAPIServers returns a APIServers
-func newAPIServers(c *DiscoveryClient, namespace string) *aPIServers {
+func newAPIServers(c *ApifederationClient) *aPIServers {
 	return &aPIServers{
-		client: c,
-		ns:     namespace,
+		client: c.RESTClient(),
 	}
 }
 
 // Create takes the representation of a aPIServer and creates it.  Returns the server's representation of the aPIServer, and an error, if there is any.
-func (c *aPIServers) Create(aPIServer *api.APIServer) (result *api.APIServer, err error) {
-	result = &api.APIServer{}
+func (c *aPIServers) Create(aPIServer *apifederation.APIServer) (result *apifederation.APIServer, err error) {
+	result = &apifederation.APIServer{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("apiservers").
 		Body(aPIServer).
 		Do().
@@ -53,10 +50,9 @@ func (c *aPIServers) Create(aPIServer *api.APIServer) (result *api.APIServer, er
 }
 
 // Update takes the representation of a aPIServer and updates it. Returns the server's representation of the aPIServer, and an error, if there is any.
-func (c *aPIServers) Update(aPIServer *api.APIServer) (result *api.APIServer, err error) {
-	result = &api.APIServer{}
+func (c *aPIServers) Update(aPIServer *apifederation.APIServer) (result *apifederation.APIServer, err error) {
+	result = &apifederation.APIServer{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("apiservers").
 		Name(aPIServer.Name).
 		Body(aPIServer).
@@ -66,9 +62,8 @@ func (c *aPIServers) Update(aPIServer *api.APIServer) (result *api.APIServer, er
 }
 
 // Delete takes name of the aPIServer and deletes it. Returns an error if one occurs.
-func (c *aPIServers) Delete(name string, options *v1.DeleteOptions) error {
+func (c *aPIServers) Delete(name string, options *api.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("apiservers").
 		Name(name).
 		Body(options).
@@ -77,21 +72,19 @@ func (c *aPIServers) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *aPIServers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *aPIServers) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("apiservers").
-		VersionedParams(&listOptions, pkg_api.ParameterCodec).
+		VersionedParams(&listOptions, api.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the aPIServer, and returns the corresponding aPIServer object, and an error if there is any.
-func (c *aPIServers) Get(name string) (result *api.APIServer, err error) {
-	result = &api.APIServer{}
+func (c *aPIServers) Get(name string) (result *apifederation.APIServer, err error) {
+	result = &apifederation.APIServer{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("apiservers").
 		Name(name).
 		Do().
@@ -100,32 +93,29 @@ func (c *aPIServers) Get(name string) (result *api.APIServer, err error) {
 }
 
 // List takes label and field selectors, and returns the list of APIServers that match those selectors.
-func (c *aPIServers) List(opts v1.ListOptions) (result *api.APIServerList, err error) {
-	result = &api.APIServerList{}
+func (c *aPIServers) List(opts api.ListOptions) (result *apifederation.APIServerList, err error) {
+	result = &apifederation.APIServerList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("apiservers").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, api.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested aPIServers.
-func (c *aPIServers) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *aPIServers) Watch(opts api.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
-		Namespace(c.ns).
 		Resource("apiservers").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, api.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched aPIServer.
-func (c *aPIServers) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.APIServer, err error) {
-	result = &api.APIServer{}
+func (c *aPIServers) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *apifederation.APIServer, err error) {
+	result = &apifederation.APIServer{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("apiservers").
 		SubResource(subresources...).
 		Name(name).

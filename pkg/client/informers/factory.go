@@ -6,14 +6,13 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
-	discoveryapi "github.com/openshift/kube-aggregator/pkg/api"
-	clientset "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset"
-	listers "github.com/openshift/kube-aggregator/pkg/client/listers/core/internalversion"
+	discoveryapi "github.com/openshift/kube-aggregator/pkg/apis/apifederation"
+	clientset "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apifederation/internalversion"
+	listers "github.com/openshift/kube-aggregator/pkg/client/listers/apifederation/internalversion"
 )
 
 type SharedInformerFactory interface {
@@ -24,7 +23,7 @@ type SharedInformerFactory interface {
 }
 
 type sharedInformerFactory struct {
-	client        clientset.Interface
+	client        clientset.ApifederationInterface
 	lock          sync.Mutex
 	defaultResync time.Duration
 
@@ -35,7 +34,7 @@ type sharedInformerFactory struct {
 }
 
 // NewSharedInformerFactory constructs a new instance of sharedInformerFactory
-func NewSharedInformerFactory(client clientset.Interface, defaultResync time.Duration) SharedInformerFactory {
+func NewSharedInformerFactory(client clientset.ApifederationInterface, defaultResync time.Duration) SharedInformerFactory {
 	return &sharedInformerFactory{
 		client:           client,
 		defaultResync:    defaultResync,
@@ -81,23 +80,11 @@ func (f *apiServerInformer) Informer() cache.SharedIndexInformer {
 	}
 	informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			// TODO something weird is happening with the client generator
-			// we never specify options, so lose them for now
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				versioned := kapiv1.ListOptions{}
-				err := kapi.Scheme.Convert(&options, &versioned, nil)
-				if err != nil {
-					return nil, err
-				}
-				return f.client.Pkg().APIServers().List(versioned)
+				return f.client.APIServers().List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				versioned := kapiv1.ListOptions{}
-				err := kapi.Scheme.Convert(&options, &versioned, nil)
-				if err != nil {
-					return nil, err
-				}
-				return f.client.Pkg().APIServers().Watch(versioned)
+				return f.client.APIServers().Watch(options)
 			},
 		},
 		&discoveryapi.APIServer{},

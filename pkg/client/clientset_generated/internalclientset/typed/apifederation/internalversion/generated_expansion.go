@@ -1,3 +1,3 @@
-package api
+package internalversion
 
 type APIServerExpansion interface{}
