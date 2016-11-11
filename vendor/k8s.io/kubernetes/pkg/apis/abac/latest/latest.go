@@ -14,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package validation
+package latest
 
 import (
-	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/genericapiserver/options"
+	_ "k8s.io/kubernetes/pkg/apis/abac"
+	_ "k8s.io/kubernetes/pkg/apis/abac/v0"
+	_ "k8s.io/kubernetes/pkg/apis/abac/v1beta1"
 )
 
-func VerifyEtcdServersList(options *options.ServerRunOptions) {
-	if len(options.StorageConfig.ServerList) == 0 {
-		glog.Fatalf("--etcd-servers must be specified")
-	}
-}
+// TODO: this file is totally wrong, it should look like other latest files.
+// lavalamp is in the middle of fixing this code, so wait for the new way of doing things..

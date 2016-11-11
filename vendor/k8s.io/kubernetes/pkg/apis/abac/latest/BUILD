@@ -12,11 +12,11 @@ load(
 
 go_library(
     name = "go_default_library",
-    srcs = ["universal_validation.go"],
+    srcs = ["latest.go"],
     tags = ["automanaged"],
     deps = [
-        "//pkg/genericapiserver/options:go_default_library",
-        "//pkg/util/errors:go_default_library",
-        "//vendor:github.com/golang/glog",
+        "//pkg/apis/abac:go_default_library",
+        "//pkg/apis/abac/v0:go_default_library",
+        "//pkg/apis/abac/v1beta1:go_default_library",
     ],
 )

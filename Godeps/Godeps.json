@@ -1017,6 +1017,26 @@
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},
 		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/abac",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/abac/latest",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/abac/v0",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/abac/v1beta1",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
 			"ImportPath": "k8s.io/kubernetes/pkg/apis/apps",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
@@ -1177,6 +1197,11 @@
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},
 		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/rbac/validation",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
 			"ImportPath": "k8s.io/kubernetes/pkg/apis/storage",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
@@ -1238,6 +1263,16 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/auth/authorizer",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/auth/authorizer/abac",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/auth/authorizer/union",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},
@@ -1458,6 +1493,11 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/genericapiserver",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/genericapiserver/authorizer",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},
@@ -1958,6 +1998,11 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/webhook",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},

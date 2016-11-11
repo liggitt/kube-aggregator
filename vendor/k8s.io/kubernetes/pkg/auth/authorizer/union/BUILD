@@ -12,11 +12,18 @@ load(
 
 go_library(
     name = "go_default_library",
-    srcs = ["universal_validation.go"],
+    srcs = ["union.go"],
     tags = ["automanaged"],
     deps = [
-        "//pkg/genericapiserver/options:go_default_library",
+        "//pkg/auth/authorizer:go_default_library",
         "//pkg/util/errors:go_default_library",
-        "//vendor:github.com/golang/glog",
     ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["union_test.go"],
+    library = "go_default_library",
+    tags = ["automanaged"],
+    deps = ["//pkg/auth/authorizer:go_default_library"],
 )
