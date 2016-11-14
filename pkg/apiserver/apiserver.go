@@ -153,6 +153,7 @@ func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
 	proxyHandler := &ProxyHandler{
 		enabled:         true,
 		destinationHost: apiServer.Spec.InternalHost,
+		contextMapper:   s.GenericAPIServer.RequestContextMapper(),
 	}
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path, proxyHandler)
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path+"/", proxyHandler)

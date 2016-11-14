@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"sync"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -25,11 +26,24 @@ type ProxyHandler struct {
 
 	destinationHost string
 	// TODO add TLS options of some kind
+
+	contextMapper kapi.RequestContextMapper
 }
 
 func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !r.isEnabled() {
 		http.Error(w, "", http.StatusNotFound)
+		return
+	}
+
+	ctx, ok := r.contextMapper.Get(req)
+	if !ok {
+		http.Error(w, "missing context", http.StatusInternalServerError)
+		return
+	}
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		http.Error(w, "missing user", http.StatusInternalServerError)
 		return
 	}
 
@@ -44,7 +58,6 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	location.RawQuery = values.Encode()
-	fmt.Printf("Outbound URL=%q from path %q\n", location.String(), req.URL.Path)
 
 	newReq, err := http.NewRequest(req.Method, location.String(), req.Body)
 	if statusErr, ok := err.(*kapierrors.StatusError); ok && err != nil {
@@ -55,15 +68,21 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	newReq.Header = req.Header
+	copyHeader(newReq.Header, req.Header)
 	newReq.ContentLength = req.ContentLength
 	// Copy the TransferEncoding is for future-proofing. Currently Go only supports "chunked" and
 	// it can determine the TransferEncoding based on ContentLength and the Body.
 	newReq.TransferEncoding = req.TransferEncoding
 
+	// TODO: work out a way to re-use most of the transport for a given server while
 	cfg := &restclient.Config{
 		Insecure:    true,
 		BearerToken: "deads/system:masters",
+		Impersonate: restclient.ImpersonationConfig{
+			UserName: user.GetName(),
+			Groups:   user.GetGroups(),
+			Extra:    user.GetExtra(),
+		},
 	}
 	roundTripper, err := restclient.TransportFor(cfg)
 	if err != nil {
@@ -89,6 +108,14 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	handler := genericrest.NewUpgradeAwareProxyHandler(location, roundTripper, false, upgrade, &responder{w: w})
 	handler.ServeHTTP(w, newReq)
+}
+
+func copyHeader(dst, src http.Header) {
+	for k, vv := range src {
+		for _, v := range vv {
+			dst.Add(k, v)
+		}
+	}
 }
 
 // responder implements rest.Responder for assisting a connector in writing objects or errors.
