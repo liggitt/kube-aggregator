@@ -6,7 +6,6 @@ package v1beta1
 
 import (
 	apifederation "github.com/openshift/kube-aggregator/pkg/apis/apifederation"
-	api "k8s.io/kubernetes/pkg/api"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
@@ -25,8 +24,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_apifederation_APIResource_To_v1beta1_APIResource,
 		Convert_v1beta1_APIServer_To_apifederation_APIServer,
 		Convert_apifederation_APIServer_To_v1beta1_APIServer,
-		Convert_v1beta1_APIServerCondition_To_apifederation_APIServerCondition,
-		Convert_apifederation_APIServerCondition_To_v1beta1_APIServerCondition,
 		Convert_v1beta1_APIServerList_To_apifederation_APIServerList,
 		Convert_apifederation_APIServerList_To_v1beta1_APIServerList,
 		Convert_v1beta1_APIServerSpec_To_apifederation_APIServerSpec,
@@ -96,34 +93,6 @@ func Convert_apifederation_APIServer_To_v1beta1_APIServer(in *apifederation.APIS
 	return autoConvert_apifederation_APIServer_To_v1beta1_APIServer(in, out, s)
 }
 
-func autoConvert_v1beta1_APIServerCondition_To_apifederation_APIServerCondition(in *APIServerCondition, out *apifederation.APIServerCondition, s conversion.Scope) error {
-	out.Type = apifederation.APIServerConditionType(in.Type)
-	out.Status = api.ConditionStatus(in.Status)
-	out.LastProbeTime = in.LastProbeTime
-	out.LastTransitionTime = in.LastTransitionTime
-	out.Reason = in.Reason
-	out.Message = in.Message
-	return nil
-}
-
-func Convert_v1beta1_APIServerCondition_To_apifederation_APIServerCondition(in *APIServerCondition, out *apifederation.APIServerCondition, s conversion.Scope) error {
-	return autoConvert_v1beta1_APIServerCondition_To_apifederation_APIServerCondition(in, out, s)
-}
-
-func autoConvert_apifederation_APIServerCondition_To_v1beta1_APIServerCondition(in *apifederation.APIServerCondition, out *APIServerCondition, s conversion.Scope) error {
-	out.Type = APIServerConditionType(in.Type)
-	out.Status = v1.ConditionStatus(in.Status)
-	out.LastProbeTime = in.LastProbeTime
-	out.LastTransitionTime = in.LastTransitionTime
-	out.Reason = in.Reason
-	out.Message = in.Message
-	return nil
-}
-
-func Convert_apifederation_APIServerCondition_To_v1beta1_APIServerCondition(in *apifederation.APIServerCondition, out *APIServerCondition, s conversion.Scope) error {
-	return autoConvert_apifederation_APIServerCondition_To_v1beta1_APIServerCondition(in, out, s)
-}
-
 func autoConvert_v1beta1_APIServerList_To_apifederation_APIServerList(in *APIServerList, out *apifederation.APIServerList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
@@ -191,10 +160,6 @@ func Convert_apifederation_APIServerSpec_To_v1beta1_APIServerSpec(in *apifederat
 }
 
 func autoConvert_v1beta1_APIServerStatus_To_apifederation_APIServerStatus(in *APIServerStatus, out *apifederation.APIServerStatus, s conversion.Scope) error {
-	out.Group = in.Group
-	out.Version = in.Version
-	out.Resources = *(*[]apifederation.APIResource)(unsafe.Pointer(&in.Resources))
-	out.Conditions = *(*[]apifederation.APIServerCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -203,10 +168,6 @@ func Convert_v1beta1_APIServerStatus_To_apifederation_APIServerStatus(in *APISer
 }
 
 func autoConvert_apifederation_APIServerStatus_To_v1beta1_APIServerStatus(in *apifederation.APIServerStatus, out *APIServerStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]APIServerCondition)(unsafe.Pointer(&in.Conditions))
-	out.Group = in.Group
-	out.Version = in.Version
-	out.Resources = *(*[]APIResource)(unsafe.Pointer(&in.Resources))
 	return nil
 }
 
