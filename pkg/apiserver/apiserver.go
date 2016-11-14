@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	apiserverfilters "k8s.io/kubernetes/pkg/apiserver/filters"
 	authhandlers "k8s.io/kubernetes/pkg/auth/handlers"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	genericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -31,6 +32,13 @@ type Config struct {
 	GenericConfig *genericapiserver.Config
 
 	RESTOptionsGetter RESTOptionsGetter
+
+	ProxyUserIdentification UserIdentification
+}
+
+type UserIdentification struct {
+	BearerToken     string
+	TLSClientConfig restclient.TLSClientConfig
 }
 
 // APIDiscoveryServer contains state for a Kubernetes cluster master/api server.
@@ -41,6 +49,8 @@ type APIDiscoveryServer struct {
 	proxyHandlers map[string]*ProxyHandler
 
 	lister listers.APIServerLister
+
+	proxyUserIdentification UserIdentification
 }
 
 type completedConfig struct {
@@ -73,9 +83,10 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 	}
 
 	s := &APIDiscoveryServer{
-		GenericAPIServer: genericServer,
-		proxyHandlers:    map[string]*ProxyHandler{},
-		lister:           informerFactory.APIServers().Lister(),
+		GenericAPIServer:        genericServer,
+		proxyHandlers:           map[string]*ProxyHandler{},
+		lister:                  informerFactory.APIServers().Lister(),
+		proxyUserIdentification: c.ProxyUserIdentification,
 	}
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(apifederation.GroupName)
@@ -151,9 +162,10 @@ func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
 	}
 
 	proxyHandler := &ProxyHandler{
-		enabled:         true,
-		destinationHost: apiServer.Spec.InternalHost,
-		contextMapper:   s.GenericAPIServer.RequestContextMapper(),
+		enabled:                 true,
+		destinationHost:         apiServer.Spec.InternalHost,
+		contextMapper:           s.GenericAPIServer.RequestContextMapper(),
+		proxyUserIdentification: s.proxyUserIdentification,
 	}
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path, proxyHandler)
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path+"/", proxyHandler)

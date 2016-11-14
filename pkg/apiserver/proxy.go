@@ -1,7 +1,6 @@
 package apiserver
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"sync"
@@ -28,6 +27,8 @@ type ProxyHandler struct {
 	// TODO add TLS options of some kind
 
 	contextMapper kapi.RequestContextMapper
+
+	proxyUserIdentification UserIdentification
 }
 
 func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -76,8 +77,9 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// TODO: work out a way to re-use most of the transport for a given server while
 	cfg := &restclient.Config{
-		Insecure:    true,
-		BearerToken: "deads/system:masters",
+		Insecure:        true,
+		BearerToken:     r.proxyUserIdentification.BearerToken,
+		TLSClientConfig: r.proxyUserIdentification.TLSClientConfig,
 		Impersonate: restclient.ImpersonationConfig{
 			UserName: user.GetName(),
 			Groups:   user.GetGroups(),
