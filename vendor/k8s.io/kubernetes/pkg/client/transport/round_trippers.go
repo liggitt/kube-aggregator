@@ -178,8 +178,6 @@ func (rt *bearerAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 		return rt.rt.RoundTrip(req)
 	}
 
-	fmt.Printf("#### adding %q\n", rt.bearer)
-
 	req = cloneRequest(req)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.bearer))
 	return rt.rt.RoundTrip(req)
