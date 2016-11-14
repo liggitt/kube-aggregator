@@ -46,7 +46,7 @@ type APIDiscoveryServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 
 	// proxyHandlers tracks all of the proxyHandler's we've built so that we can update them in place when necessary
-	proxyHandlers map[string]*ProxyHandler
+	proxyHandlers map[string]*proxyHandler
 
 	lister listers.APIServerLister
 
@@ -84,7 +84,7 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 
 	s := &APIDiscoveryServer{
 		GenericAPIServer:        genericServer,
-		proxyHandlers:           map[string]*ProxyHandler{},
+		proxyHandlers:           map[string]*proxyHandler{},
 		lister:                  informerFactory.APIServers().Lister(),
 		proxyUserIdentification: c.ProxyUserIdentification,
 	}
@@ -101,7 +101,7 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 		return nil, err
 	}
 
-	proxyRegistrationController := NewProxyRegistrationController(informerFactory.APIServers(), s)
+	proxyRegistrationController := NewAPIServerRegistrationController(informerFactory.APIServers(), s)
 
 	s.GenericAPIServer.AddPostStartHook("start-informers", func(context genericapiserver.PostStartHookContext) error {
 		informerFactory.Start(wait.NeverStop)
@@ -148,7 +148,7 @@ func (h *handlerChainConfig) handlerChain(apiHandler http.Handler, c *genericapi
 	return generic(protect(apiHandler)), generic(audit(apiHandler))
 }
 
-func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
+func (s *APIDiscoveryServer) AddAPIServer(apiServer *apifederation.APIServer) {
 	if handler, exists := s.proxyHandlers[apiServer.Name]; exists {
 		handler.SetDestinationHost(apiServer.Spec.InternalHost)
 		handler.SetEnabled(true)
@@ -161,7 +161,7 @@ func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
 		path = "/api"
 	}
 
-	proxyHandler := &ProxyHandler{
+	proxyHandler := &proxyHandler{
 		enabled:                 true,
 		destinationHost:         apiServer.Spec.InternalHost,
 		contextMapper:           s.GenericAPIServer.RequestContextMapper(),
@@ -187,7 +187,7 @@ func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
 
 }
 
-func (s *APIDiscoveryServer) RemoveProxy(apiServerName string) {
+func (s *APIDiscoveryServer) RemoveAPIServer(apiServerName string) {
 	handler, exists := s.proxyHandlers[apiServerName]
 	if !exists {
 		return

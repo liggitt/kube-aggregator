@@ -18,13 +18,13 @@ import (
 	listers "github.com/openshift/kube-aggregator/pkg/client/listers/apifederation/internalversion"
 )
 
-type ProxyManager interface {
-	AddProxy(apiServer *apifederation.APIServer)
-	RemoveProxy(apiServerName string)
+type APIHandlerManager interface {
+	AddAPIServer(apiServer *apifederation.APIServer)
+	RemoveAPIServer(apiServerName string)
 }
 
-type ProxyRegistrationController struct {
-	proxyManager ProxyManager
+type APIServerRegistrationController struct {
+	apiHandlerManager APIHandlerManager
 
 	apiServerLister listers.APIServerLister
 
@@ -34,11 +34,11 @@ type ProxyRegistrationController struct {
 	queue workqueue.RateLimitingInterface
 }
 
-func NewProxyRegistrationController(apiServerInformer informers.APIServerInformer, proxyManager ProxyManager) *ProxyRegistrationController {
-	c := &ProxyRegistrationController{
-		proxyManager:    proxyManager,
-		apiServerLister: apiServerInformer.Lister(),
-		queue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ProxyRegistrationController"),
+func NewAPIServerRegistrationController(apiServerInformer informers.APIServerInformer, apiHandlerManager APIHandlerManager) *APIServerRegistrationController {
+	c := &APIServerRegistrationController{
+		apiHandlerManager: apiHandlerManager,
+		apiServerLister:   apiServerInformer.Lister(),
+		queue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "APIServerRegistrationController"),
 	}
 
 	apiServerInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -51,26 +51,26 @@ func NewProxyRegistrationController(apiServerInformer informers.APIServerInforme
 	return c
 }
 
-func (c *ProxyRegistrationController) sync(key string) error {
+func (c *APIServerRegistrationController) sync(key string) error {
 	apiServer, err := c.apiServerLister.Get(key)
 	if kapierrors.IsNotFound(err) {
-		c.proxyManager.RemoveProxy(key)
+		c.apiHandlerManager.RemoveAPIServer(key)
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	c.proxyManager.AddProxy(apiServer)
+	c.apiHandlerManager.AddAPIServer(apiServer)
 	return nil
 }
 
-func (c *ProxyRegistrationController) Run(workers int, stopCh <-chan struct{}) {
+func (c *APIServerRegistrationController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
-	defer glog.Infof("Shutting down ProxyRegistrationController")
+	defer glog.Infof("Shutting down APIServerRegistrationController")
 
-	glog.Infof("Starting ProxyRegistrationController")
+	glog.Infof("Starting APIServerRegistrationController")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
@@ -79,13 +79,13 @@ func (c *ProxyRegistrationController) Run(workers int, stopCh <-chan struct{}) {
 	<-stopCh
 }
 
-func (c *ProxyRegistrationController) runWorker() {
+func (c *APIServerRegistrationController) runWorker() {
 	for c.processNextWorkItem() {
 	}
 }
 
 // processNextWorkItem deals with one key off the queue.  It returns false when it's time to quit.
-func (c *ProxyRegistrationController) processNextWorkItem() bool {
+func (c *APIServerRegistrationController) processNextWorkItem() bool {
 	key, quit := c.queue.Get()
 	if quit {
 		return false
@@ -104,7 +104,7 @@ func (c *ProxyRegistrationController) processNextWorkItem() bool {
 	return true
 }
 
-func (c *ProxyRegistrationController) enqueue(obj *apifederation.APIServer) {
+func (c *APIServerRegistrationController) enqueue(obj *apifederation.APIServer) {
 	key, err := controller.KeyFunc(obj)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %#v: %v", obj, err)
@@ -114,13 +114,13 @@ func (c *ProxyRegistrationController) enqueue(obj *apifederation.APIServer) {
 	c.queue.Add(key)
 }
 
-func (c *ProxyRegistrationController) addAPIServer(obj interface{}) {
+func (c *APIServerRegistrationController) addAPIServer(obj interface{}) {
 	castObj := obj.(*apifederation.APIServer)
 	glog.V(4).Infof("Adding daemon set %s", castObj.Name)
 	c.enqueue(castObj)
 }
 
-func (c *ProxyRegistrationController) deleteAPIServer(obj interface{}) {
+func (c *APIServerRegistrationController) deleteAPIServer(obj interface{}) {
 	castObj, ok := obj.(*apifederation.APIServer)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)

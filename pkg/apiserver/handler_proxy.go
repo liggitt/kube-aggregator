@@ -14,9 +14,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
 )
 
-// ProxyHandler provides a http.Handler which will proxy traffic to locations
+// proxyHandler provides a http.Handler which will proxy traffic to locations
 // specified by items implementing Redirector.
-type ProxyHandler struct {
+type proxyHandler struct {
 	// lock protects us for updates.
 	lock sync.RWMutex
 
@@ -31,7 +31,7 @@ type ProxyHandler struct {
 	proxyUserIdentification UserIdentification
 }
 
-func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !r.isEnabled() {
 		http.Error(w, "", http.StatusNotFound)
 		return
@@ -133,24 +133,24 @@ func (r *responder) Error(err error) {
 	http.Error(r.w, err.Error(), http.StatusInternalServerError)
 }
 
-func (r *ProxyHandler) getDestinationHost() string {
+func (r *proxyHandler) getDestinationHost() string {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	return r.destinationHost
 }
-func (r *ProxyHandler) SetDestinationHost(destinationHost string) {
+func (r *proxyHandler) SetDestinationHost(destinationHost string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	r.destinationHost = destinationHost
 }
 
-func (r *ProxyHandler) isEnabled() bool {
+func (r *proxyHandler) isEnabled() bool {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	return r.enabled
 }
 
-func (r *ProxyHandler) SetEnabled(enabled bool) {
+func (r *proxyHandler) SetEnabled(enabled bool) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	r.enabled = enabled

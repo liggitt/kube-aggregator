@@ -37,7 +37,7 @@ type DiscoveryServerOptions struct {
 	StdOut io.Writer
 }
 
-const startLong = `Start an API server hosting the project.openshift.io API.`
+const startLong = `Start an API server hosting the apifederation.openshift.io API.`
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
 func NewCommandStartDiscoveryServer(out io.Writer) *cobra.Command {
@@ -84,11 +84,6 @@ func (o *DiscoveryServerOptions) Complete() error {
 	return nil
 }
 
-// RunServer will eventually take the options and:
-// 1.  Creates certs if needed
-// 2.  Reads fully specified master config OR builds a fully specified master config from the args
-// 3.  Writes the fully specified master config and exits if needed
-// 4.  Starts the master based on the fully specified config
 func (o DiscoveryServerOptions) RunDiscoveryServer() error {
 	var err error
 	genericAPIServerConfig := genericapiserver.NewConfig().ApplySecureServingOptions(o.SecureServing)
