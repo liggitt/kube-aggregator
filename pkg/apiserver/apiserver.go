@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	apiserverfilters "k8s.io/kubernetes/pkg/apiserver/filters"
 	authhandlers "k8s.io/kubernetes/pkg/auth/handlers"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	genericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -31,6 +32,13 @@ type Config struct {
 	GenericConfig *genericapiserver.Config
 
 	RESTOptionsGetter RESTOptionsGetter
+
+	ProxyUserIdentification UserIdentification
+}
+
+type UserIdentification struct {
+	BearerToken     string
+	TLSClientConfig restclient.TLSClientConfig
 }
 
 // APIDiscoveryServer contains state for a Kubernetes cluster master/api server.
@@ -38,9 +46,11 @@ type APIDiscoveryServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 
 	// proxyHandlers tracks all of the proxyHandler's we've built so that we can update them in place when necessary
-	proxyHandlers map[string]*ProxyHandler
+	proxyHandlers map[string]*proxyHandler
 
 	lister listers.APIServerLister
+
+	proxyUserIdentification UserIdentification
 }
 
 type completedConfig struct {
@@ -73,9 +83,10 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 	}
 
 	s := &APIDiscoveryServer{
-		GenericAPIServer: genericServer,
-		proxyHandlers:    map[string]*ProxyHandler{},
-		lister:           informerFactory.APIServers().Lister(),
+		GenericAPIServer:        genericServer,
+		proxyHandlers:           map[string]*proxyHandler{},
+		lister:                  informerFactory.APIServers().Lister(),
+		proxyUserIdentification: c.ProxyUserIdentification,
 	}
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(apifederation.GroupName)
@@ -90,7 +101,7 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 		return nil, err
 	}
 
-	proxyRegistrationController := NewProxyRegistrationController(informerFactory.APIServers(), s)
+	proxyRegistrationController := NewAPIServerRegistrationController(informerFactory.APIServers(), s)
 
 	s.GenericAPIServer.AddPostStartHook("start-informers", func(context genericapiserver.PostStartHookContext) error {
 		informerFactory.Start(wait.NeverStop)
@@ -137,7 +148,7 @@ func (h *handlerChainConfig) handlerChain(apiHandler http.Handler, c *genericapi
 	return generic(protect(apiHandler)), generic(audit(apiHandler))
 }
 
-func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
+func (s *APIDiscoveryServer) AddAPIServer(apiServer *apifederation.APIServer) {
 	if handler, exists := s.proxyHandlers[apiServer.Name]; exists {
 		handler.SetDestinationHost(apiServer.Spec.InternalHost)
 		handler.SetEnabled(true)
@@ -150,9 +161,11 @@ func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
 		path = "/api"
 	}
 
-	proxyHandler := &ProxyHandler{
-		enabled:         true,
-		destinationHost: apiServer.Spec.InternalHost,
+	proxyHandler := &proxyHandler{
+		enabled:                 true,
+		destinationHost:         apiServer.Spec.InternalHost,
+		contextMapper:           s.GenericAPIServer.RequestContextMapper(),
+		proxyUserIdentification: s.proxyUserIdentification,
 	}
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path, proxyHandler)
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path+"/", proxyHandler)
@@ -174,7 +187,7 @@ func (s *APIDiscoveryServer) AddProxy(apiServer *apifederation.APIServer) {
 
 }
 
-func (s *APIDiscoveryServer) RemoveProxy(apiServerName string) {
+func (s *APIDiscoveryServer) RemoveAPIServer(apiServerName string) {
 	handler, exists := s.proxyHandlers[apiServerName]
 	if !exists {
 		return

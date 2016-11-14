@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -31,10 +32,12 @@ type DiscoveryServerOptions struct {
 	Authentication *genericoptions.DelegatingAuthenticationOptions
 	Authorization  *genericoptions.DelegatingAuthorizationOptions
 
+	ProxyClientConfigFile string
+
 	StdOut io.Writer
 }
 
-const startLong = `Start an API server hosting the project.openshift.io API.`
+const startLong = `Start an API server hosting the apifederation.openshift.io API.`
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
 func NewCommandStartDiscoveryServer(out io.Writer) *cobra.Command {
@@ -66,6 +69,7 @@ func NewCommandStartDiscoveryServer(out io.Writer) *cobra.Command {
 	o.SecureServing.AddFlags(flags)
 	o.Authentication.AddFlags(flags)
 	o.Authorization.AddFlags(flags)
+	flags.StringVar(&o.ProxyClientConfigFile, "proxy-kubeconfig", o.ProxyClientConfigFile, "kubeconfig file which will only use the `user` section for authenticating to backing servers.")
 
 	GLog(cmd.PersistentFlags())
 
@@ -80,11 +84,6 @@ func (o *DiscoveryServerOptions) Complete() error {
 	return nil
 }
 
-// RunServer will eventually take the options and:
-// 1.  Creates certs if needed
-// 2.  Reads fully specified master config OR builds a fully specified master config from the args
-// 3.  Writes the fully specified master config and exits if needed
-// 4.  Starts the master based on the fully specified config
 func (o DiscoveryServerOptions) RunDiscoveryServer() error {
 	var err error
 	genericAPIServerConfig := genericapiserver.NewConfig().ApplySecureServingOptions(o.SecureServing)
@@ -113,9 +112,22 @@ func (o DiscoveryServerOptions) RunDiscoveryServer() error {
 		return err
 	}
 
+	// read the kubeconfig file to use for proxying requests
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules.ExplicitPath = o.ProxyClientConfigFile
+	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+	clientConfig, err := loader.ClientConfig()
+	if err != nil {
+		return err
+	}
+
 	config := apiserver.Config{
 		GenericConfig:     genericAPIServerConfig,
 		RESTOptionsGetter: restOptionsFactory{storageConfig: &o.Etcd.StorageConfig},
+		ProxyUserIdentification: apiserver.UserIdentification{
+			BearerToken:     clientConfig.BearerToken,
+			TLSClientConfig: clientConfig.TLSClientConfig,
+		},
 	}
 
 	server, err := config.Complete().New()

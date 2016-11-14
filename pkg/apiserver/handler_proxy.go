@@ -1,11 +1,11 @@
 package apiserver
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"sync"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -14,9 +14,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
 )
 
-// ProxyHandler provides a http.Handler which will proxy traffic to locations
+// proxyHandler provides a http.Handler which will proxy traffic to locations
 // specified by items implementing Redirector.
-type ProxyHandler struct {
+type proxyHandler struct {
 	// lock protects us for updates.
 	lock sync.RWMutex
 
@@ -25,11 +25,26 @@ type ProxyHandler struct {
 
 	destinationHost string
 	// TODO add TLS options of some kind
+
+	contextMapper kapi.RequestContextMapper
+
+	proxyUserIdentification UserIdentification
 }
 
-func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !r.isEnabled() {
 		http.Error(w, "", http.StatusNotFound)
+		return
+	}
+
+	ctx, ok := r.contextMapper.Get(req)
+	if !ok {
+		http.Error(w, "missing context", http.StatusInternalServerError)
+		return
+	}
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		http.Error(w, "missing user", http.StatusInternalServerError)
 		return
 	}
 
@@ -44,7 +59,6 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	location.RawQuery = values.Encode()
-	fmt.Printf("Outbound URL=%q from path %q\n", location.String(), req.URL.Path)
 
 	newReq, err := http.NewRequest(req.Method, location.String(), req.Body)
 	if statusErr, ok := err.(*kapierrors.StatusError); ok && err != nil {
@@ -55,15 +69,22 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	newReq.Header = req.Header
+	copyHeader(newReq.Header, req.Header)
 	newReq.ContentLength = req.ContentLength
 	// Copy the TransferEncoding is for future-proofing. Currently Go only supports "chunked" and
 	// it can determine the TransferEncoding based on ContentLength and the Body.
 	newReq.TransferEncoding = req.TransferEncoding
 
+	// TODO: work out a way to re-use most of the transport for a given server while
 	cfg := &restclient.Config{
-		Insecure:    true,
-		BearerToken: "deads/system:masters",
+		Insecure:        true,
+		BearerToken:     r.proxyUserIdentification.BearerToken,
+		TLSClientConfig: r.proxyUserIdentification.TLSClientConfig,
+		Impersonate: restclient.ImpersonationConfig{
+			UserName: user.GetName(),
+			Groups:   user.GetGroups(),
+			Extra:    user.GetExtra(),
+		},
 	}
 	roundTripper, err := restclient.TransportFor(cfg)
 	if err != nil {
@@ -91,6 +112,14 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	handler.ServeHTTP(w, newReq)
 }
 
+func copyHeader(dst, src http.Header) {
+	for k, vv := range src {
+		for _, v := range vv {
+			dst.Add(k, v)
+		}
+	}
+}
+
 // responder implements rest.Responder for assisting a connector in writing objects or errors.
 type responder struct {
 	w http.ResponseWriter
@@ -104,24 +133,24 @@ func (r *responder) Error(err error) {
 	http.Error(r.w, err.Error(), http.StatusInternalServerError)
 }
 
-func (r *ProxyHandler) getDestinationHost() string {
+func (r *proxyHandler) getDestinationHost() string {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	return r.destinationHost
 }
-func (r *ProxyHandler) SetDestinationHost(destinationHost string) {
+func (r *proxyHandler) SetDestinationHost(destinationHost string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	r.destinationHost = destinationHost
 }
 
-func (r *ProxyHandler) isEnabled() bool {
+func (r *proxyHandler) isEnabled() bool {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	return r.enabled
 }
 
-func (r *ProxyHandler) SetEnabled(enabled bool) {
+func (r *proxyHandler) SetEnabled(enabled bool) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	r.enabled = enabled

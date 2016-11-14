@@ -7,7 +7,7 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 export CODECGEN_GENERATED_FILES="
-pkg/api/v1beta1/types.generated.go
+pkg/apis/apifederation/v1beta1/types.generated.go
 "
 
 export CODECGEN_PREFIX=github.com/openshift/kube-aggregator
