@@ -222,6 +222,14 @@
 			"Rev": "0bbddae09c5a5419a8c6dcdd7ff90da3d450393b"
 		},
 		{
+			"ImportPath": "github.com/docker/spdystream",
+			"Rev": "449fdfce4d962303d702fec724ef0ad181c92528"
+		},
+		{
+			"ImportPath": "github.com/docker/spdystream/spdy",
+			"Rev": "449fdfce4d962303d702fec724ef0ad181c92528"
+		},
+		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
 			"Rev": "3dcc96556217539f50599357fb481ac0dc7439b9"
 		},
@@ -464,6 +472,10 @@
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
 			"Rev": "740c764bc6149d3f1806231418adb9f52c11bcbf"
+		},
+		{
+			"ImportPath": "github.com/mxk/go-flowrate/flowrate",
+			"Rev": "cca7078d478f8520f85629ad7c68962d31ed7682"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",
@@ -1627,6 +1639,11 @@
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},
 		{
+			"ImportPath": "k8s.io/kubernetes/pkg/registry/generic/rest",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
 			"ImportPath": "k8s.io/kubernetes/pkg/runtime",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
@@ -1807,6 +1824,11 @@
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},
 		{
+			"ImportPath": "k8s.io/kubernetes/pkg/util/httpstream/spdy",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
 			"ImportPath": "k8s.io/kubernetes/pkg/util/integer",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
@@ -1918,6 +1940,11 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/util/wait",
+			"Comment": "v1.6.0-alpha.0-238-g0271eac",
+			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/util/workqueue",
 			"Comment": "v1.6.0-alpha.0-238-g0271eac",
 			"Rev": "0271eac28f8acb82d8efff025f1f83cdf31a208d"
 		},

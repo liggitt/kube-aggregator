@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	discoveryapi "github.com/openshift/kube-aggregator/pkg/api"
-	"github.com/openshift/kube-aggregator/pkg/api/validation"
+	discoveryapi "github.com/openshift/kube-aggregator/pkg/apis/apifederation"
+	"github.com/openshift/kube-aggregator/pkg/apis/apifederation/validation"
 )
 
 type apiServerStrategy struct {

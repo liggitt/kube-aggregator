@@ -7,7 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 
-	discoveryapi "github.com/openshift/kube-aggregator/pkg/api"
+	discoveryapi "github.com/openshift/kube-aggregator/pkg/apis/apifederation"
 )
 
 // rest implements a RESTStorage for network policies against etcd

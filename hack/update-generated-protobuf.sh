@@ -51,7 +51,7 @@ KUBE_PACKAGES=(
 )
 
 MY_PACKAGES=(
-github.com/openshift/kube-aggregator/pkg/api/v1beta1
+github.com/openshift/kube-aggregator/pkg/apis/apifederation/v1beta1
 )
 
 PACKAGES=$(IFS=,; echo "${KUBE_PACKAGES[*]}"),$(IFS=,; echo "${MY_PACKAGES[*]}")

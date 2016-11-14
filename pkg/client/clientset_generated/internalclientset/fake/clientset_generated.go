@@ -2,8 +2,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset"
-	apipkg "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/pkg/api"
-	fakeapipkg "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/pkg/api/fake"
+	internalversionapifederation "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apifederation/internalversion"
+	fakeinternalversionapifederation "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apifederation/internalversion/fake"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -46,12 +46,7 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// PkgApi retrieves the PkgApiClient
-func (c *Clientset) PkgApi() apipkg.PkgApiInterface {
-	return &fakeapipkg.FakePkgApi{Fake: &c.Fake}
-}
-
-// Pkg retrieves the PkgApiClient
-func (c *Clientset) Pkg() apipkg.PkgApiInterface {
-	return &fakeapipkg.FakePkgApi{Fake: &c.Fake}
+// Apifederation retrieves the ApifederationClient
+func (c *Clientset) Apifederation() internalversionapifederation.ApifederationInterface {
+	return &fakeinternalversionapifederation.FakeApifederation{Fake: &c.Fake}
 }

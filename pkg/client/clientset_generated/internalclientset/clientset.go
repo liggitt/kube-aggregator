@@ -2,7 +2,7 @@ package internalclientset
 
 import (
 	"github.com/golang/glog"
-	apipkg "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/pkg/api"
+	internalversionapifederation "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apifederation/internalversion"
 	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	discovery "k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
@@ -11,33 +11,22 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	PkgApi() apipkg.PkgApiInterface
-	// Deprecated: please explicitly pick a version if possible.
-	Pkg() apipkg.PkgApiInterface
+	Apifederation() internalversionapifederation.ApifederationInterface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*apipkg.PkgApiClient
+	*internalversionapifederation.ApifederationClient
 }
 
-// PkgApi retrieves the PkgApiClient
-func (c *Clientset) PkgApi() apipkg.PkgApiInterface {
+// Apifederation retrieves the ApifederationClient
+func (c *Clientset) Apifederation() internalversionapifederation.ApifederationInterface {
 	if c == nil {
 		return nil
 	}
-	return c.PkgApiClient
-}
-
-// Deprecated: Pkg retrieves the default version of PkgClient.
-// Please explicitly pick a version.
-func (c *Clientset) Pkg() apipkg.PkgApiInterface {
-	if c == nil {
-		return nil
-	}
-	return c.PkgApiClient
+	return c.ApifederationClient
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -53,7 +42,7 @@ func NewForConfig(c *restclient.Config) (*Clientset, error) {
 	}
 	var clientset Clientset
 	var err error
-	clientset.PkgApiClient, err = apipkg.NewForConfig(&configShallowCopy)
+	clientset.ApifederationClient, err = internalversionapifederation.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +59,7 @@ func NewForConfig(c *restclient.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *restclient.Config) *Clientset {
 	var clientset Clientset
-	clientset.PkgApiClient = apipkg.NewForConfigOrDie(c)
+	clientset.ApifederationClient = internalversionapifederation.NewForConfigOrDie(c)
 
 	clientset.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &clientset
@@ -79,7 +68,7 @@ func NewForConfigOrDie(c *restclient.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c restclient.Interface) *Clientset {
 	var clientset Clientset
-	clientset.PkgApiClient = apipkg.New(c)
+	clientset.ApifederationClient = internalversionapifederation.New(c)
 
 	clientset.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &clientset
