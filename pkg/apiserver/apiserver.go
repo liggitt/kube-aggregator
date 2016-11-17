@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/openshift/kube-aggregator/pkg/apis/apifederation"
 	discoveryapiv1beta1 "github.com/openshift/kube-aggregator/pkg/apis/apifederation/v1beta1"
+	"github.com/openshift/kube-aggregator/pkg/apiserver/bootstraproutes"
 	clientset "github.com/openshift/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apifederation/internalversion"
 	"github.com/openshift/kube-aggregator/pkg/client/informers"
 	listers "github.com/openshift/kube-aggregator/pkg/client/listers/apifederation/internalversion"
@@ -34,6 +36,8 @@ type Config struct {
 	RESTOptionsGetter RESTOptionsGetter
 
 	ProxyTLSConfig restclient.TLSClientConfig
+
+	AuthUser string
 }
 
 // APIDiscoveryServer contains state for a Kubernetes cluster master/api server.
@@ -46,6 +50,8 @@ type APIDiscoveryServer struct {
 	lister listers.APIServerLister
 
 	proxyTLSConfig restclient.TLSClientConfig
+
+	unprotectedMux *http.ServeMux
 }
 
 type completedConfig struct {
@@ -70,7 +76,12 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 		clientset.NewForConfigOrDie(c.Config.GenericConfig.LoopbackClientConfig),
 		5*time.Minute, // this is effectively used as a refresh interval right now.  Might want to do something nicer later on.
 	)
-	c.Config.GenericConfig.BuildHandlerChainsFunc = (&handlerChainConfig{informers: informerFactory}).handlerChain
+	unprotectedMux := http.NewServeMux()
+
+	c.Config.GenericConfig.BuildHandlerChainsFunc = (&handlerChainConfig{
+		informers:      informerFactory,
+		unprotectedMux: unprotectedMux,
+	}).handlerChain
 
 	genericServer, err := c.Config.GenericConfig.SkipComplete().New() // completion is done in Complete, no need for a second time
 	if err != nil {
@@ -82,7 +93,10 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 		proxyHandlers:    map[string]*proxyHandler{},
 		lister:           informerFactory.APIServers().Lister(),
 		proxyTLSConfig:   c.ProxyTLSConfig,
+		unprotectedMux:   unprotectedMux,
 	}
+
+	bootstraproutes.RoleBindings{AuthUser: c.AuthUser}.Install(unprotectedMux)
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(apifederation.GroupName)
 	apiGroupInfo.GroupMeta.GroupVersion = discoveryapiv1beta1.SchemeGroupVersion
@@ -111,36 +125,34 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 }
 
 type handlerChainConfig struct {
-	informers informers.SharedInformerFactory
+	informers      informers.SharedInformerFactory
+	unprotectedMux *http.ServeMux
 }
 
 func (h *handlerChainConfig) handlerChain(apiHandler http.Handler, c *genericapiserver.Config) (secure, insecure http.Handler) {
 	attributeGetter := apiserverfilters.NewRequestAttributeGetter(c.RequestContextMapper)
 
-	generic := func(handler http.Handler) http.Handler {
-		// add this as a filter so that we never collide with "already registered" failures on `/apis`
-		handler = WithAPIs(handler, h.informers)
+	// add this as a filter so that we never collide with "already registered" failures on `/apis`
+	handler := WithAPIs(apiHandler, h.informers)
 
-		handler = genericfilters.WithCORS(handler, c.CorsAllowedOriginList, nil, nil, nil, "true")
-		handler = genericfilters.WithPanicRecovery(handler, c.RequestContextMapper)
-		handler = apiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(c), c.RequestContextMapper)
-		handler = kapi.WithRequestContext(handler, c.RequestContextMapper)
-		handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.LongRunningFunc)
-		handler = genericfilters.WithMaxInFlightLimit(handler, c.MaxRequestsInFlight, c.LongRunningFunc)
-		return handler
-	}
-	audit := func(handler http.Handler) http.Handler {
-		return apiserverfilters.WithAudit(handler, attributeGetter, c.AuditWriter)
-	}
-	protect := func(handler http.Handler) http.Handler {
-		handler = apiserverfilters.WithAuthorization(handler, attributeGetter, c.Authorizer)
-		handler = apiserverfilters.WithImpersonation(handler, c.RequestContextMapper, c.Authorizer)
-		handler = audit(handler) // before impersonation to read original user
-		handler = authhandlers.WithAuthentication(handler, c.RequestContextMapper, c.Authenticator, authhandlers.Unauthorized(c.SupportsBasicAuth))
-		return handler
-	}
+	handler = apiserverfilters.WithAuthorization(handler, attributeGetter, c.Authorizer)
 
-	return generic(protect(apiHandler)), generic(audit(apiHandler))
+	// this mux is NOT protected by authorization, but DOES have authentication information
+	// this is so that everyone can hit these endpoints, but we have the user information for proxy cases
+	handler = WithUnprotectedMux(handler, h.unprotectedMux)
+
+	handler = apiserverfilters.WithImpersonation(handler, c.RequestContextMapper, c.Authorizer)
+	handler = apiserverfilters.WithAudit(handler, attributeGetter, os.Stdout)
+	handler = authhandlers.WithAuthentication(handler, c.RequestContextMapper, c.Authenticator, authhandlers.Unauthorized(c.SupportsBasicAuth))
+
+	handler = genericfilters.WithCORS(handler, c.CorsAllowedOriginList, nil, nil, nil, "true")
+	handler = genericfilters.WithPanicRecovery(handler, c.RequestContextMapper)
+	handler = apiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(c), c.RequestContextMapper)
+	handler = kapi.WithRequestContext(handler, c.RequestContextMapper)
+	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.LongRunningFunc)
+	handler = genericfilters.WithMaxInFlightLimit(handler, c.MaxRequestsInFlight, c.LongRunningFunc)
+
+	return handler, nil
 }
 
 func (s *APIDiscoveryServer) AddAPIServer(apiServer *apifederation.APIServer) {
@@ -169,8 +181,9 @@ func (s *APIDiscoveryServer) AddAPIServer(apiServer *apifederation.APIServer) {
 		proxyTLSConfig:        tlsConfig,
 		insecureSkipTLSVerify: apiServer.Spec.InsecureSkipTLSVerify,
 	}
-	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path, proxyHandler)
-	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path+"/", proxyHandler)
+	// proxies are unprotected by
+	s.unprotectedMux.Handle(path, proxyHandler)
+	s.unprotectedMux.Handle(path+"/", proxyHandler)
 	s.proxyHandlers[apiServer.Name] = proxyHandler
 
 	// if we're dealing with the legacy group, we're done here
@@ -184,6 +197,7 @@ func (s *APIDiscoveryServer) AddAPIServer(apiServer *apifederation.APIServer) {
 		groupName: apiServer.Spec.Group,
 		lister:    s.lister,
 	}
+	// discovery is protected
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(groupPath, groupDiscoveryHandler)
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(groupPath+"/", groupDiscoveryHandler)
 
@@ -205,5 +219,18 @@ func WithAPIs(handler http.Handler, informers informers.SharedInformerFactory) h
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		apisHandler.ServeHTTP(w, req)
+	})
+}
+
+func WithUnprotectedMux(handler http.Handler, mux *http.ServeMux) http.Handler {
+	if mux == nil {
+		return handler
+	}
+
+	// register the handler at this stage against everything under slash.  More specific paths that get registered will take precedence
+	mux.Handle("/", handler)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		mux.ServeHTTP(w, req)
 	})
 }
