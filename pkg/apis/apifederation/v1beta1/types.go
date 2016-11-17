@@ -19,7 +19,10 @@ type APIServerSpec struct {
 	InternalHost string `json:"internalHost,omitempty" protobuf:"bytes,3,opt,name=internalHost"`
 	Prefix       string `json:"prefix,omitempty" protobuf:"bytes,4,opt,name=prefix"`
 
-	Priority int64 `json:"priority" protobuf:"varint,5,opt,name=priority"`
+	InsecureSkipTLSVerify bool   `json:"insecureSkipTLSVerify,omitempty" protobuf:"varint,5,opt,name=insecureSkipTLSVerify"`
+	CABundle              []byte `json:"caBundle" protobuf:"bytes,6,opt,name=caBundle"`
+
+	Priority int64 `json:"priority" protobuf:"varint,7,opt,name=priority"`
 }
 
 type APIServerStatus struct {

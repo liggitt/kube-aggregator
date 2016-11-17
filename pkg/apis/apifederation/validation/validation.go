@@ -56,6 +56,13 @@ func ValidateAPIServer(apiServer *discoveryapi.APIServer) field.ErrorList {
 		}
 	}
 
+	if apiServer.Spec.InsecureSkipTLSVerify && len(apiServer.Spec.CABundle) > 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "insecureSkipTLSVerify"), apiServer.Spec.InsecureSkipTLSVerify, "may not be true if caBundle is present"))
+	}
+	if !apiServer.Spec.InsecureSkipTLSVerify && len(apiServer.Spec.CABundle) == 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "caBundle"), apiServer.Spec.CABundle, "must be present if insecureSkipTLSVerify is missing"))
+	}
+
 	return allErrs
 }
 

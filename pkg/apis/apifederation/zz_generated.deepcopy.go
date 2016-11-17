@@ -58,7 +58,9 @@ func DeepCopy_apifederation_APIServer(in interface{}, out interface{}, c *conver
 		} else {
 			out.ObjectMeta = *newVal.(*api.ObjectMeta)
 		}
-		out.Spec = in.Spec
+		if err := DeepCopy_apifederation_APIServerSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
 		out.Status = in.Status
 		return nil
 	}
@@ -93,6 +95,14 @@ func DeepCopy_apifederation_APIServerSpec(in interface{}, out interface{}, c *co
 		out.Prefix = in.Prefix
 		out.Group = in.Group
 		out.Version = in.Version
+		out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
+		if in.CABundle != nil {
+			in, out := &in.CABundle, &out.CABundle
+			*out = make([]byte, len(*in))
+			copy(*out, *in)
+		} else {
+			out.CABundle = nil
+		}
 		out.Priority = in.Priority
 		return nil
 	}

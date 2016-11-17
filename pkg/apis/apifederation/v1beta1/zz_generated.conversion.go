@@ -138,6 +138,8 @@ func autoConvert_v1beta1_APIServerSpec_To_apifederation_APIServerSpec(in *APISer
 	out.Version = in.Version
 	out.InternalHost = in.InternalHost
 	out.Prefix = in.Prefix
+	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
+	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
 	out.Priority = in.Priority
 	return nil
 }
@@ -151,6 +153,8 @@ func autoConvert_apifederation_APIServerSpec_To_v1beta1_APIServerSpec(in *apifed
 	out.Prefix = in.Prefix
 	out.Group = in.Group
 	out.Version = in.Version
+	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
+	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
 	out.Priority = in.Priority
 	return nil
 }
