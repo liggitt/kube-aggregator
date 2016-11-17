@@ -58,7 +58,9 @@ func DeepCopy_v1beta1_APIServer(in interface{}, out interface{}, c *conversion.C
 		} else {
 			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.Spec = in.Spec
+		if err := DeepCopy_v1beta1_APIServerSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
 		out.Status = in.Status
 		return nil
 	}
@@ -93,6 +95,14 @@ func DeepCopy_v1beta1_APIServerSpec(in interface{}, out interface{}, c *conversi
 		out.Version = in.Version
 		out.InternalHost = in.InternalHost
 		out.Prefix = in.Prefix
+		out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
+		if in.CABundle != nil {
+			in, out := &in.CABundle, &out.CABundle
+			*out = make([]byte, len(*in))
+			copy(*out, *in)
+		} else {
+			out.CABundle = nil
+		}
 		out.Priority = in.Priority
 		return nil
 	}

@@ -5,4 +5,5 @@ metadata:
 spec:
   version: v1
   internalHost: localhost:6443
+  insecureSkipTLSVerify: true
   priority: 1

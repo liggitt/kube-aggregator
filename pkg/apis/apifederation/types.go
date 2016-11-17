@@ -19,6 +19,9 @@ type APIServerSpec struct {
 	Group        string
 	Version      string
 
+	InsecureSkipTLSVerify bool
+	CABundle              []byte
+
 	Priority int64
 }
 

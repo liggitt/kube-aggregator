@@ -1,10 +1,10 @@
 apiVersion: apifederation.openshift.io/v1beta1
 kind: APIServer
 metadata:
-  name: v1beta1.extensions
+  name: v1alpha1.certificates.k8s.io
 spec:
-  group: extensions
-  version: v1beta1
+  group: certificates.k8s.io
+  version: v1alpha1
   internalHost: localhost:6443
   insecureSkipTLSVerify: true
-  priority: 8001
+  priority: 3001
