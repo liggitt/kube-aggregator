@@ -1,10 +1,10 @@
 apiVersion: apifederation.openshift.io/v1beta1
 kind: APIServer
 metadata:
-  name: v1beta1.extensions
+  name: v1.batch
 spec:
-  group: extensions
-  version: v1beta1
+  group: batch
+  version: v1
   internalHost: localhost:6443
   insecureSkipTLSVerify: true
-  priority: 8001
+  priority: 2001

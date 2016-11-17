@@ -33,12 +33,7 @@ type Config struct {
 
 	RESTOptionsGetter RESTOptionsGetter
 
-	ProxyUserIdentification UserIdentification
-}
-
-type UserIdentification struct {
-	BearerToken     string
-	TLSClientConfig restclient.TLSClientConfig
+	ProxyTLSConfig restclient.TLSClientConfig
 }
 
 // APIDiscoveryServer contains state for a Kubernetes cluster master/api server.
@@ -50,7 +45,7 @@ type APIDiscoveryServer struct {
 
 	lister listers.APIServerLister
 
-	proxyUserIdentification UserIdentification
+	proxyTLSConfig restclient.TLSClientConfig
 }
 
 type completedConfig struct {
@@ -83,10 +78,10 @@ func (c completedConfig) New() (*APIDiscoveryServer, error) {
 	}
 
 	s := &APIDiscoveryServer{
-		GenericAPIServer:        genericServer,
-		proxyHandlers:           map[string]*proxyHandler{},
-		lister:                  informerFactory.APIServers().Lister(),
-		proxyUserIdentification: c.ProxyUserIdentification,
+		GenericAPIServer: genericServer,
+		proxyHandlers:    map[string]*proxyHandler{},
+		lister:           informerFactory.APIServers().Lister(),
+		proxyTLSConfig:   c.ProxyTLSConfig,
 	}
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(apifederation.GroupName)
@@ -149,9 +144,15 @@ func (h *handlerChainConfig) handlerChain(apiHandler http.Handler, c *genericapi
 }
 
 func (s *APIDiscoveryServer) AddAPIServer(apiServer *apifederation.APIServer) {
+	// make copy so we don't mess with the original
+	tlsConfig := s.proxyTLSConfig
+	tlsConfig.CAData = apiServer.Spec.CABundle
+
 	if handler, exists := s.proxyHandlers[apiServer.Name]; exists {
 		handler.SetDestinationHost(apiServer.Spec.InternalHost)
 		handler.SetEnabled(true)
+		handler.SetTLSConfig(tlsConfig)
+		handler.SetInsecureSkipTLSVerify(apiServer.Spec.InsecureSkipTLSVerify)
 		return
 	}
 
@@ -162,10 +163,11 @@ func (s *APIDiscoveryServer) AddAPIServer(apiServer *apifederation.APIServer) {
 	}
 
 	proxyHandler := &proxyHandler{
-		enabled:                 true,
-		destinationHost:         apiServer.Spec.InternalHost,
-		contextMapper:           s.GenericAPIServer.RequestContextMapper(),
-		proxyUserIdentification: s.proxyUserIdentification,
+		enabled:               true,
+		destinationHost:       apiServer.Spec.InternalHost,
+		contextMapper:         s.GenericAPIServer.RequestContextMapper(),
+		proxyTLSConfig:        tlsConfig,
+		insecureSkipTLSVerify: apiServer.Spec.InsecureSkipTLSVerify,
 	}
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path, proxyHandler)
 	s.GenericAPIServer.HandlerContainer.SecretRoutes.Handle(path+"/", proxyHandler)

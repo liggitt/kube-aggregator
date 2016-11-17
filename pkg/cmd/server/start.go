@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/options"
@@ -124,9 +125,11 @@ func (o DiscoveryServerOptions) RunDiscoveryServer() error {
 	config := apiserver.Config{
 		GenericConfig:     genericAPIServerConfig,
 		RESTOptionsGetter: restOptionsFactory{storageConfig: &o.Etcd.StorageConfig},
-		ProxyUserIdentification: apiserver.UserIdentification{
-			BearerToken:     clientConfig.BearerToken,
-			TLSClientConfig: clientConfig.TLSClientConfig,
+		ProxyTLSConfig: restclient.TLSClientConfig{
+			CertFile: clientConfig.TLSClientConfig.CertFile,
+			KeyFile:  clientConfig.TLSClientConfig.KeyFile,
+			CertData: clientConfig.TLSClientConfig.CertData,
+			KeyData:  clientConfig.TLSClientConfig.KeyData,
 		},
 	}
 

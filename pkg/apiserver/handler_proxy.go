@@ -9,6 +9,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/transport"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
@@ -28,7 +29,8 @@ type proxyHandler struct {
 
 	contextMapper kapi.RequestContextMapper
 
-	proxyUserIdentification UserIdentification
+	proxyTLSConfig        restclient.TLSClientConfig
+	insecureSkipTLSVerify bool
 }
 
 func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -77,20 +79,16 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// TODO: work out a way to re-use most of the transport for a given server while
 	cfg := &restclient.Config{
-		Insecure:        true,
-		BearerToken:     r.proxyUserIdentification.BearerToken,
-		TLSClientConfig: r.proxyUserIdentification.TLSClientConfig,
-		Impersonate: restclient.ImpersonationConfig{
-			UserName: user.GetName(),
-			Groups:   user.GetGroups(),
-			Extra:    user.GetExtra(),
-		},
+		Insecure:        r.insecureSkipTLSVerify,
+		TLSClientConfig: r.getTLSConfig(),
 	}
 	roundTripper, err := restclient.TransportFor(cfg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// we need to wrap the roundtripper in another roundtripper which will apply the front proxy headers
+	roundTripper = transport.NewAuthProxyRoundTripper(user.GetName(), user.GetGroups(), user.GetExtra(), roundTripper)
 
 	upgrade := false
 	if connectionHeader := req.Header.Get("Connection"); len(connectionHeader) > 0 {
@@ -154,4 +152,27 @@ func (r *proxyHandler) SetEnabled(enabled bool) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	r.enabled = enabled
+}
+
+func (r *proxyHandler) getTLSConfig() restclient.TLSClientConfig {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	return r.proxyTLSConfig
+}
+func (r *proxyHandler) SetTLSConfig(tlsConfig restclient.TLSClientConfig) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.proxyTLSConfig = tlsConfig
+}
+
+func (r *proxyHandler) isInsecureSkipTLSVerify() bool {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	return r.insecureSkipTLSVerify
+}
+
+func (r *proxyHandler) SetInsecureSkipTLSVerify(insecureSkipTLSVerify bool) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.insecureSkipTLSVerify = insecureSkipTLSVerify
 }
