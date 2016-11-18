@@ -33,6 +33,7 @@ type DiscoveryServerOptions struct {
 	Authentication *genericoptions.DelegatingAuthenticationOptions
 	Authorization  *genericoptions.DelegatingAuthorizationOptions
 
+	AuthUser              string
 	ProxyClientConfigFile string
 
 	StdOut io.Writer
@@ -71,6 +72,7 @@ func NewCommandStartDiscoveryServer(out io.Writer) *cobra.Command {
 	o.Authentication.AddFlags(flags)
 	o.Authorization.AddFlags(flags)
 	flags.StringVar(&o.ProxyClientConfigFile, "proxy-kubeconfig", o.ProxyClientConfigFile, "kubeconfig file which will only use the `user` section for authenticating to backing servers.")
+	flags.StringVar(&o.AuthUser, "auth-user", o.AuthUser, "username of the user used for delegating authentication and authorization.  Primes /bootstrap/rbac endpoint.")
 
 	GLog(cmd.PersistentFlags())
 
@@ -131,6 +133,7 @@ func (o DiscoveryServerOptions) RunDiscoveryServer() error {
 			CertData: clientConfig.TLSClientConfig.CertData,
 			KeyData:  clientConfig.TLSClientConfig.KeyData,
 		},
+		AuthUser: o.AuthUser,
 	}
 
 	server, err := config.Complete().New()
