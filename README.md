@@ -20,6 +20,7 @@ nice make && hack/local-up.sh
 echo `curl -k https://localhost:8444/bootstrap/rbac` | kubectl create -f - --token=root/system:masters --server=https://localhost:6443
 
 # bind the role you just created to the user `federation-editor` so that he can create api federation objects
+# TODO requires https://github.com/kubernetes/kubernetes/pull/37098
 kubectl create clusterrolebinding federator --clusterrole=apifederation.openshift.io:editor --user=federation-editor --token=root/system:masters  --server=https://localhost:6443
 
 # create the api servers for the "normal" kube apiserver
