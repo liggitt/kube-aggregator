@@ -3,6 +3,7 @@ A server to unify Kubernetes API servers providing different resources for one c
 
 ```bash
 # start the kube apiserver
+# TODO requires https://github.com/kubernetes/kubernetes/pull/36838 to merge
 ALLOW_ANY_TOKEN=true ENABLE_RBAC=true ENABLE_AUTH_PROXY=true hack/local-up-cluster.sh
 
 # change credentials for generated key to be used by the federator proxy
@@ -15,7 +16,7 @@ nice make && hack/local-up.sh
 
 
 # create rbac roles and bindings for the api federator
-echo `curl -k https://localhost:8444/bootstrap/rbac` | kubectl create -f - --validate=false --token=root/system:masters --server=https://localhost:6443
+echo `curl -k https://localhost:8444/bootstrap/rbac` | kubectl create -f - --token=root/system:masters --server=https://localhost:6443
 
 # bind the role you just created to the user `federation-editor` so that he can create api federation objects
 kubectl create clusterrolebinding federator --clusterrole=apifederation.openshift.io:editor --user=federation-editor --token=root/system:masters  --server=https://localhost:6443
