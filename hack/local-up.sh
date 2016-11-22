@@ -11,7 +11,7 @@ ${OS_ROOT}/_output/local/bin/linux/amd64/kube-aggregator \
   --authorization-kubeconfig=${OS_ROOT}/test/artifacts/local-secure-anytoken.kubeconfig \
   --auth-user=apifederation-server \
   --proxy-kubeconfig=${OS_ROOT}/test/artifacts/local-secure-proxy-client-cert.kubeconfig \
-  --client-ca-file=/var/run/kubernetes/apiserver.crt \
+  --client-ca-file=/var/run/kubernetes/complete-client-ca-bundle.crt \
   --tls-ca-file=/var/run/kubernetes/apiserver.crt \
   --secure-port=8444 \
   --etcd-servers="http://${ETCD_HOST}:${ETCD_PORT}" \
